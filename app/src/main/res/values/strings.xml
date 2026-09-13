@@ -16,6 +16,10 @@
     <string name="pinned_title">На виджете</string>
     <string name="pinned_empty">Ничего не закреплено — на виджете будут кнопки по умолчанию</string>
     <string name="pinned_hint">Звезда закрепляет действие на виджете, стрелки меняют порядок кнопок</string>
+    <string name="norm_left">норма %1$s: осталось %2$d из %3$d</string>
+    <string name="norm_exceeded">норма %1$s исчерпана (%2$d из %3$d)</string>
+    <string name="evidence_norm">Норма</string>
+    <string name="evidence_norm_body">В пределах нормы (%1$d %2$s) событие стоит %3$s мин, сверх нормы — %4$s мин</string>
     <string name="evidence_open">Откуда цифра</string>
     <string name="evidence_exposure">Что мерили</string>
     <string name="evidence_basis">Как получено число</string>

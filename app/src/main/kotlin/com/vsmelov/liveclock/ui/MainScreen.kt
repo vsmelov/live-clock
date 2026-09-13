@@ -256,6 +256,11 @@ private fun ActionsSection(
             found.forEach { type ->
                 ActionRow(
                     type = type,
+                    // Цена именно СЛЕДУЮЩЕГО нажатия: у типов с нормой она
+                    // меняется по ходу периода, и видеть надо её, а не номинал.
+                    nextDelta = uiState.life.deltaFor(type, uiState.now, uiState.zone),
+                    normLeft = uiState.life.remainingInNorm(type, uiState.now, uiState.zone),
+                    usedInPeriod = uiState.life.countInPeriod(type, uiState.now, uiState.zone),
                     usedTimes = uiState.usageCounts[type] ?: 0,
                     pinned = type in uiState.pinned,
                     onLog = { onLog(type) },
@@ -367,6 +372,9 @@ private fun TodayRow(event: LifeEvent, zone: ZoneId) {
 @Composable
 private fun ActionRow(
     type: EventType,
+    nextDelta: Int,
+    normLeft: Int,
+    usedInPeriod: Int,
     usedTimes: Int,
     pinned: Boolean,
     onLog: () -> Unit,
@@ -389,7 +397,7 @@ private fun ActionRow(
                 textAlign = TextAlign.Start,
             )
             Text(
-                text = stringResource(R.string.minutes_delta, type.deltaMinutes.withExplicitSign()),
+                text = stringResource(R.string.minutes_delta, nextDelta.withExplicitSign()),
                 style = MaterialTheme.typography.labelMedium,
             )
         }
@@ -403,20 +411,34 @@ private fun ActionRow(
             )
         }
     }
+    val dosing = type.dosing
+    val normHint = when {
+        dosing == null -> null
+        normLeft > 0 -> stringResource(
+            R.string.norm_left, dosing.period.label, normLeft, dosing.normal,
+        )
+        else -> stringResource(
+            R.string.norm_exceeded, dosing.period.label, usedInPeriod, dosing.normal,
+        )
+    }
+
     Text(
-        text = buildString {
-            append(type.evidence.confidence.label)
-            append(" · ")
-            append(
-                if (usedTimes == 0) {
-                    stringResource(R.string.actions_never_used)
-                } else {
-                    stringResource(R.string.actions_used_times, usedTimes)
-                },
-            )
-        },
+        text = listOfNotNull(
+            type.evidence.confidence.label,
+            normHint,
+            if (usedTimes == 0) {
+                stringResource(R.string.actions_never_used)
+            } else {
+                stringResource(R.string.actions_used_times, usedTimes)
+            },
+        ).joinToString(" · "),
         style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        // Исчерпанная норма подсвечивается: это и есть сигнал «дальше в минус».
+        color = if (dosing != null && normLeft == 0) {
+            MaterialTheme.colorScheme.error
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
         modifier = Modifier.padding(start = 12.dp, bottom = 6.dp),
     )
 }
@@ -449,6 +471,18 @@ private fun EvidenceDialog(type: EventType, onDismiss: () -> Unit) {
                     style = MaterialTheme.typography.titleSmall,
                 )
                 ConfidenceBadge(evidence.confidence)
+                type.dosing?.let { dosing ->
+                    EvidenceBlock(
+                        stringResource(R.string.evidence_norm),
+                        stringResource(
+                            R.string.evidence_norm_body,
+                            dosing.normal,
+                            dosing.period.label,
+                            dosing.withinNormalMinutes.withExplicitSign(),
+                            dosing.beyondNormalMinutes.withExplicitSign(),
+                        ),
+                    )
+                }
                 EvidenceBlock(stringResource(R.string.evidence_exposure), evidence.exposure)
                 EvidenceBlock(stringResource(R.string.evidence_basis), evidence.basis)
                 EvidenceBlock(stringResource(R.string.evidence_caveat), evidence.caveat)
@@ -471,7 +505,7 @@ private fun ConfidenceBadge(confidence: Confidence) {
     val color = when (confidence) {
         Confidence.STRONG -> MaterialTheme.colorScheme.primary
         Confidence.MODERATE -> MaterialTheme.colorScheme.secondary
-        Confidence.WEAK, Confidence.NONE -> MaterialTheme.colorScheme.error
+        Confidence.WEAK, Confidence.NONE, Confidence.ESTIMATE -> MaterialTheme.colorScheme.error
         Confidence.CHOSEN -> MaterialTheme.colorScheme.tertiary
     }
     Text(

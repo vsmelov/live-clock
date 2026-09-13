@@ -5,6 +5,17 @@ private const val BMJ_TITLE = "Spiegelhalter, BMJ 2012;345:e8223 — микро�
 private const val CONVERSATION =
     "https://cdn.theconversation.com/assets_for_articles/2017-12-22-microlife-table.pdf"
 
+/** Общая оговорка для величин, назначенных мной, а не взятых из работы. */
+private const val ESTIMATE_CAVEAT =
+    "Величина назначена мной по порядку соседних строк, а не взята из работы. " +
+        "Направление эффекта общепринято, размер — нет"
+
+/**
+ * Ссылка для прикидок. Это общая справка, а НЕ источник числа: числа
+ * у таких строк моего изготовления, и в оговорке это написано прямо.
+ */
+private const val GUIDE = "https://www.health.harvard.edu/staying-healthy"
+
 /**
  * Типы действий, влияющих на остаток жизни.
  *
@@ -25,6 +36,15 @@ enum class EventType(
     val emoji: String,
     val keywords: String,
     val evidence: Evidence,
+    /**
+     * Норма за период, если у действия она есть. Пока укладываешься в норму,
+     * событие стоит одно, сверх неё — другое. См. [Dosing].
+     *
+     * [deltaMinutes] при этом остаётся номинальной величиной для витрины;
+     * настоящая цена конкретного нажатия считается в
+     * [LifeState.deltaFor] и замораживается в событии.
+     */
+    val dosing: Dosing? = null,
 ) {
     SMOKE(
         id = "smoke", deltaMinutes = Coefficients.SMOKE,
@@ -53,6 +73,8 @@ enum class EventType(
                 "Поставь +30 в Coefficients, если хочешь как в статье",
             sourceTitle = BMJ_TITLE, sourceUrl = BMJ,
         ),
+        dosing = Dosing(DosingPeriod.DAY, normal = 1,
+            withinNormalMinutes = 30, beyondNormalMinutes = Coefficients.DRINK),
     ),
     REST(
         id = "rest", deltaMinutes = Coefficients.REST,
@@ -203,6 +225,8 @@ enum class EventType(
                 "часть эффекта наверняка их, а не кофе",
             sourceTitle = BMJ_TITLE, sourceUrl = BMJ,
         ),
+        dosing = Dosing(DosingPeriod.DAY, normal = 3,
+            withinNormalMinutes = Coefficients.COFFEE, beyondNormalMinutes = 0),
     ),
     VEGETABLES(
         id = "vegetables", deltaMinutes = Coefficients.VEGETABLES,
@@ -218,6 +242,8 @@ enum class EventType(
                 "эффект неправдоподобен",
             sourceTitle = BMJ_TITLE, sourceUrl = BMJ,
         ),
+        dosing = Dosing(DosingPeriod.DAY, normal = 5,
+            withinNormalMinutes = Coefficients.VEGETABLES, beyondNormalMinutes = 0),
     ),
     RED_MEAT(
         id = "red_meat", deltaMinutes = Coefficients.RED_MEAT,
@@ -234,6 +260,8 @@ enum class EventType(
             sourceTitle = "Pan et al., Arch Intern Med 2012",
             sourceUrl = "https://pmc.ncbi.nlm.nih.gov/articles/PMC3712342",
         ),
+        dosing = Dosing(DosingPeriod.WEEK, normal = 3,
+            withinNormalMinutes = 0, beyondNormalMinutes = Coefficients.RED_MEAT),
     ),
     FAST_FOOD(
         id = "fast_food", deltaMinutes = Coefficients.FAST_FOOD,
@@ -248,6 +276,8 @@ enum class EventType(
                 "Скорее всего это та же строка про красное мясо другими словами",
             sourceTitle = BMJ_TITLE, sourceUrl = BMJ,
         ),
+        dosing = Dosing(DosingPeriod.WEEK, normal = 1,
+            withinNormalMinutes = 0, beyondNormalMinutes = Coefficients.FAST_FOOD),
     ),
     TV(
         id = "tv", deltaMinutes = Coefficients.TV,
@@ -261,6 +291,8 @@ enum class EventType(
                 "так что работа за столом, вероятно, считается так же",
             sourceTitle = BMJ_TITLE, sourceUrl = BMJ,
         ),
+        dosing = Dosing(DosingPeriod.DAY, normal = 2,
+            withinNormalMinutes = 0, beyondNormalMinutes = Coefficients.TV),
     ),
     PET(
         id = "pet", deltaMinutes = Coefficients.PET,
@@ -319,6 +351,206 @@ enum class EventType(
                 "дефиците конкретного витамина речь совсем о другом",
             sourceTitle = "Loftfield et al., JAMA Network Open 2024",
             sourceUrl = "https://jamanetwork.com/journals/jamanetworkopen/fullarticle/2820369",
+        ),
+    ),
+    SAUNA(
+        id = "sauna", deltaMinutes = Coefficients.SAUNA,
+        label = "Сауна или баня", emoji = "🧖",
+        keywords = "сауна баня парная хамам sauna",
+        evidence = Evidence(
+            confidence = Confidence.MODERATE,
+            exposure = "4–7 посещений в неделю против одного, HR 0.60",
+            basis = "Kuopio, 2315 мужчин, наблюдение 20.7 года",
+            caveat = "HR 0.60 далеко за пределами диапазона, для которого формула " +
+                "обещана (0.75–1.3), так что число завышено. В том же журнале вышел " +
+                "отдельный комментарий о том, что связь может быть непричинной: " +
+                "часто парятся те, кто и так здоров и не работает на трёх работах",
+            sourceTitle = "Laukkanen et al., JAMA Internal Medicine 2015",
+            sourceUrl =
+                "https://jamanetwork.com/journals/jamainternalmedicine/article-abstract/2448449",
+        ),
+    ),
+    NUTS(
+        id = "nuts", deltaMinutes = Coefficients.NUTS,
+        label = "Горсть орехов", emoji = "🥜",
+        keywords = "орехи миндаль грецкие фундук nuts",
+        evidence = Evidence(
+            confidence = Confidence.STRONG,
+            exposure = "Орехи 7+ раз в неделю против нуля, HR 0.80",
+            basis = "Гарвардские когорты, 118 962 человека, чёткая доза-ответ: " +
+                "реже раза в неделю 0.93, два-четыре раза 0.87, каждый день 0.80",
+            caveat = "Наблюдательное, и орехи едят люди с деньгами и привычкой " +
+                "следить за едой. Зато доза-ответ ровная, а это хороший признак",
+            sourceTitle = "Bao et al., NEJM 2013",
+            sourceUrl = "https://www.nejm.org/doi/full/10.1056/NEJMoa1307352",
+        ),
+        dosing = Dosing(DosingPeriod.DAY, normal = 1,
+            withinNormalMinutes = Coefficients.NUTS, beyondNormalMinutes = 0),
+    ),
+    BIKE_COMMUTE(
+        id = "bike_commute", deltaMinutes = Coefficients.BIKE_COMMUTE,
+        label = "Доехал на велосипеде", emoji = "🚴",
+        keywords = "велосипед вело самокат доехал bike",
+        evidence = Evidence(
+            confidence = Confidence.MODERATE,
+            exposure = "Дорога на работу на велосипеде, HR 0.59",
+            basis = "UK Biobank, 263 450 человек, 5 лет",
+            caveat = "Самый крупный плюс в списке и самый подозрительный: HR 0.59 " +
+                "далеко вне диапазона формулы, а на велосипеде на работу ездят " +
+                "молодые, здоровые и живущие близко. Считай это верхней границей",
+            sourceTitle = "Celis-Morales et al., BMJ 2017",
+            sourceUrl = "https://www.ccam-tac.org/wp-content/uploads/2020/03/bmj.j1456.full_.pdf",
+        ),
+    ),
+    RUNNING(
+        id = "running", deltaMinutes = Coefficients.RUNNING,
+        label = "Пробежка", emoji = "🏃",
+        keywords = "бег пробежка кросс run jogging",
+        evidence = Evidence(
+            confidence = Confidence.STRONG,
+            exposure = "Бегуны против небегающих, HR 0.70",
+            basis = "55 137 человек, 15 лет. Даже 5–10 минут в день дают тот же " +
+                "эффект, что и больше — порог низкий",
+            caveat = "HR 0.70 чуть вне диапазона формулы. И бегают те, кто может " +
+                "бегать: больные не бегают, а умирают чаще",
+            sourceTitle = "Lee et al., JACC 2014",
+            sourceUrl = "https://www.jacc.org/doi/10.1016/j.jacc.2014.04.058",
+        ),
+    ),
+    FISH(
+        id = "fish", deltaMinutes = Coefficients.FISH,
+        label = "Рыба, порция", emoji = "🐟",
+        keywords = "рыба лосось селёдка морепродукты fish",
+        evidence = Evidence(
+            confidence = Confidence.ESTIMATE,
+            exposure = "Порция рыбы вместо порции красного мяса",
+            basis = "Замена красного мяса рыбой связана со снижением смертности " +
+                "во всех крупных когортах. Величина взята небольшой положительной",
+            caveat = ESTIMATE_CAVEAT,
+            sourceTitle = "Общая справка. Число моё, не отсюда",
+            sourceUrl = GUIDE,
+        ),
+    ),
+    SUGARY_DRINK(
+        id = "sugary_drink", deltaMinutes = Coefficients.SUGARY_DRINK,
+        label = "Сладкая газировка", emoji = "🥤",
+        keywords = "газировка кола сок сахар лимонад soda",
+        evidence = Evidence(
+            confidence = Confidence.ESTIMATE,
+            exposure = "Сверх двух банок в неделю",
+            basis = "Сладкие напитки устойчиво связаны с диабетом и смертностью. " +
+                "Величина взята чуть меньше порции красного мяса",
+            caveat = ESTIMATE_CAVEAT,
+            sourceTitle = "Общая справка. Число моё, не отсюда",
+            sourceUrl = GUIDE,
+        ),
+        dosing = Dosing(DosingPeriod.WEEK, normal = 2,
+            withinNormalMinutes = 0, beyondNormalMinutes = Coefficients.SUGARY_DRINK),
+    ),
+    SWEETS(
+        id = "sweets", deltaMinutes = Coefficients.SWEETS,
+        label = "Сладкое", emoji = "🍬",
+        keywords = "сладкое десерт шоколад печенье торт sweets",
+        evidence = Evidence(
+            confidence = Confidence.ESTIMATE,
+            exposure = "Сверх одного десерта в день",
+            basis = "Величина взята небольшой: один десерт в день — это фон, " +
+                "а не фактор риска",
+            caveat = ESTIMATE_CAVEAT,
+            sourceTitle = "Общая справка. Число моё, не отсюда",
+            sourceUrl = GUIDE,
+        ),
+        dosing = Dosing(DosingPeriod.DAY, normal = 1,
+            withinNormalMinutes = 0, beyondNormalMinutes = Coefficients.SWEETS),
+    ),
+    STRESS(
+        id = "stress", deltaMinutes = Coefficients.STRESS,
+        label = "Тяжёлый стресс", emoji = "😤",
+        keywords = "стресс нервы конфликт ссора аврал stress",
+        evidence = Evidence(
+            confidence = Confidence.ESTIMATE,
+            exposure = "День сильного стресса или конфликта",
+            basis = "Хронический стресс связан со смертностью через сердце и " +
+                "поведение. Разовый день — величина взята небольшой",
+            caveat = ESTIMATE_CAVEAT + ". И разовый стресс с хроническим " +
+                "смешивать нельзя: вредит второй",
+            sourceTitle = "Общая справка. Число моё, не отсюда",
+            sourceUrl = GUIDE,
+        ),
+    ),
+    READING(
+        id = "reading", deltaMinutes = Coefficients.READING,
+        label = "Полчаса книги", emoji = "📖",
+        keywords = "чтение книга читал reading book",
+        evidence = Evidence(
+            confidence = Confidence.ESTIMATE,
+            exposure = "Полчаса чтения книг",
+            basis = "Есть известная работа Йельского университета про читающих " +
+                "книги, но величина здесь назначена мной по порядку соседних строк",
+            caveat = ESTIMATE_CAVEAT + ". Читают книги люди с образованием " +
+                "и достатком — эффект почти наверняка не от самого чтения",
+            sourceTitle = "Общая справка. Число моё, не отсюда",
+            sourceUrl = GUIDE,
+        ),
+    ),
+    FLOSS(
+        id = "floss", deltaMinutes = Coefficients.FLOSS,
+        label = "Зубная нить", emoji = "🦷",
+        keywords = "нить флосс зубы гигиена floss",
+        evidence = Evidence(
+            confidence = Confidence.ESTIMATE,
+            exposure = "Чистка межзубных промежутков за день",
+            basis = "Болезни дёсен связаны с сердечно-сосудистой смертностью. " +
+                "Величина взята маленькой",
+            caveat = ESTIMATE_CAVEAT + ". Причинность тут спорна даже сильнее " +
+                "обычного: за зубами следят те, кто следит и за остальным",
+            sourceTitle = "Общая справка. Число моё, не отсюда",
+            sourceUrl = GUIDE,
+        ),
+    ),
+    TEA(
+        id = "tea", deltaMinutes = Coefficients.TEA,
+        label = "Чай", emoji = "🫖",
+        keywords = "чай зелёный чёрный tea",
+        evidence = Evidence(
+            confidence = Confidence.ESTIMATE,
+            exposure = "Чашка чая",
+            basis = "По аналогии с кофе, но осторожнее: доказательная база " +
+                "слабее. Взята треть от кофейной величины",
+            caveat = ESTIMATE_CAVEAT,
+            sourceTitle = "Общая справка. Число моё, не отсюда",
+            sourceUrl = GUIDE,
+        ),
+    ),
+    NAP(
+        id = "nap", deltaMinutes = Coefficients.NAP,
+        label = "Дневной сон", emoji = "😴",
+        keywords = "дремота сон днём подремал nap",
+        evidence = Evidence(
+            confidence = Confidence.ESTIMATE,
+            exposure = "Короткий сон днём",
+            basis = "Короткий дневной сон обычно связывают с пользой, длинный — " +
+                "с вредом. Величина взята символической",
+            caveat = ESTIMATE_CAVEAT + ". Длинный дневной сон в работах уходит " +
+                "в минус, и это скорее признак болезни, чем её причина",
+            sourceTitle = "Общая справка. Число моё, не отсюда",
+            sourceUrl = GUIDE,
+        ),
+    ),
+    FLU_SHOT(
+        id = "flu_shot", deltaMinutes = Coefficients.FLU_SHOT,
+        label = "Привился от гриппа", emoji = "💉",
+        keywords = "прививка вакцина грипп укол flu vaccine",
+        evidence = Evidence(
+            confidence = Confidence.ESTIMATE,
+            exposure = "Сезонная прививка",
+            basis = "Одна из немногих строк здесь, где есть рандомизированные " +
+                "испытания, а не только наблюдения. Но перевод в минуты жизни " +
+                "для здорового человека 30 лет — моя прикидка",
+            caveat = ESTIMATE_CAVEAT + ". Основная польза приходится на пожилых " +
+                "и людей с хроническими болезнями",
+            sourceTitle = "Общая справка. Число моё, не отсюда",
+            sourceUrl = GUIDE,
         ),
     ),
     ;
