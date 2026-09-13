@@ -17,11 +17,27 @@ android {
         versionName = "1.0"
     }
 
+    signingConfigs {
+        // Release подписывается тем же debug-ключом. Для личного приложения,
+        // которое ставится по USB, отдельный keystore — лишняя сущность:
+        // его нельзя положить в репозиторий, а потеряв его, нельзя обновить
+        // уже установленную сборку. Свой ключ пропиши здесь, если дойдёт
+        // до публикации.
+        create("releaseLocal") {
+            val debugStore = File(System.getProperty("user.home"), ".android/debug.keystore")
+            storeFile = debugStore
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         debug {
             isMinifyEnabled = false
         }
         release {
+            signingConfig = signingConfigs.getByName("releaseLocal")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
