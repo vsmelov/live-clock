@@ -16,6 +16,14 @@
     <string name="pinned_title">На виджете</string>
     <string name="pinned_empty">Ничего не закреплено — на виджете будут кнопки по умолчанию</string>
     <string name="pinned_hint">Звезда закрепляет действие на виджете, стрелки меняют порядок кнопок</string>
+    <string name="evidence_open">Откуда цифра</string>
+    <string name="evidence_exposure">Что мерили</string>
+    <string name="evidence_basis">Как получено число</string>
+    <string name="evidence_caveat">Чему не верить</string>
+    <string name="evidence_source">Источник</string>
+    <string name="evidence_open_source">Открыть источник</string>
+    <string name="evidence_close">Закрыть</string>
+    <string name="evidence_value">Величина: %1$s мин</string>
     <string name="pin_add">Закрепить</string>
     <string name="pin_remove">Открепить</string>
     <string name="move_up">Выше</string>

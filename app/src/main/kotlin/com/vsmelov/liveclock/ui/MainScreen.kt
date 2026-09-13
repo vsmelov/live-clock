@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePicker
@@ -35,12 +36,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vsmelov.liveclock.R
+import com.vsmelov.liveclock.domain.Confidence
 import com.vsmelov.liveclock.domain.EventType
+import com.vsmelov.liveclock.domain.Evidence
 import com.vsmelov.liveclock.domain.LifeEvent
 import com.vsmelov.liveclock.domain.LifeMath
 import androidx.compose.ui.res.stringResource
@@ -178,8 +182,13 @@ private fun ActionsSection(
     onMovePin: (EventType, Int) -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
+    var evidenceFor by remember { mutableStateOf<EventType?>(null) }
     val found = EventType.entries.filter { it.matches(query) }
     val searching = query.isNotBlank()
+
+    evidenceFor?.let { type ->
+        EvidenceDialog(type = type, onDismiss = { evidenceFor = null })
+    }
 
     SectionCard(title = stringResource(R.string.actions_title)) {
         OutlinedTextField(
@@ -251,6 +260,7 @@ private fun ActionsSection(
                     pinned = type in uiState.pinned,
                     onLog = { onLog(type) },
                     onTogglePin = { onTogglePin(type) },
+                    onShowEvidence = { evidenceFor = type },
                 )
             }
         }
@@ -279,53 +289,6 @@ private fun PinnedRow(
         TextButton(onClick = { onMove(1) }, enabled = canMoveDown) { Text("↓") }
         TextButton(onClick = onUnpin) { Text("★") }
     }
-}
-
-/**
- * Строка действия: нажатие по строке записывает событие, звезда —
- * закрепляет на виджете. Рядом видно, сколько раз действие уже вносили,
- * чтобы закреплять то, чем реально пользуешься.
- */
-@Composable
-private fun ActionRow(
-    type: EventType,
-    usedTimes: Int,
-    pinned: Boolean,
-    onLog: () -> Unit,
-    onTogglePin: () -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Button(onClick = onLog, modifier = Modifier.weight(1f)) {
-            Text(
-                text = "${type.emoji} ${type.label}",
-                modifier = Modifier.weight(1f),
-                textAlign = TextAlign.Start,
-            )
-            Text(
-                text = stringResource(R.string.minutes_delta, type.deltaMinutes.withExplicitSign()),
-                style = MaterialTheme.typography.labelMedium,
-            )
-        }
-        TextButton(onClick = onTogglePin) {
-            Text(
-                text = if (pinned) "★" else "☆",
-                style = MaterialTheme.typography.titleMedium,
-            )
-        }
-    }
-    Text(
-        text = if (usedTimes == 0) {
-            stringResource(R.string.actions_never_used)
-        } else {
-            stringResource(R.string.actions_used_times, usedTimes)
-        },
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = 12.dp, bottom = 6.dp),
-    )
 }
 
 @Composable
@@ -391,6 +354,142 @@ private fun TodayRow(event: LifeEvent, zone: ZoneId) {
                 MaterialTheme.colorScheme.error
             },
         )
+    }
+}
+
+/**
+ * Строка действия: нажатие записывает событие, звезда закрепляет на виджете,
+ * «i» показывает, откуда взялась цифра.
+ *
+ * Рядом видно, сколько раз действие уже вносили — чтобы закреплять то,
+ * чем реально пользуешься.
+ */
+@Composable
+private fun ActionRow(
+    type: EventType,
+    usedTimes: Int,
+    pinned: Boolean,
+    onLog: () -> Unit,
+    onTogglePin: () -> Unit,
+    onShowEvidence: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Button(
+            onClick = onLog,
+            // Нулевые действия жать можно: на остаток они не влияют, но как
+            // трекер привычки «принял витамины» кнопка всё равно полезна.
+            modifier = Modifier.weight(1f),
+        ) {
+            Text(
+                text = "${type.emoji} ${type.label}",
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Start,
+            )
+            Text(
+                text = stringResource(R.string.minutes_delta, type.deltaMinutes.withExplicitSign()),
+                style = MaterialTheme.typography.labelMedium,
+            )
+        }
+        TextButton(onClick = onShowEvidence) {
+            Text(text = "ⓘ", style = MaterialTheme.typography.titleMedium)
+        }
+        TextButton(onClick = onTogglePin) {
+            Text(
+                text = if (pinned) "★" else "☆",
+                style = MaterialTheme.typography.titleMedium,
+            )
+        }
+    }
+    Text(
+        text = buildString {
+            append(type.evidence.confidence.label)
+            append(" · ")
+            append(
+                if (usedTimes == 0) {
+                    stringResource(R.string.actions_never_used)
+                } else {
+                    stringResource(R.string.actions_used_times, usedTimes)
+                },
+            )
+        },
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = 12.dp, bottom = 6.dp),
+    )
+}
+
+/**
+ * Пруф по действию.
+ *
+ * Показывает не только ссылку, но и что именно мерили, как из этого вышло
+ * число и чему верить не стоит. Без последнего пункта пруф превращается
+ * в видимость обоснованности.
+ */
+@Composable
+private fun EvidenceDialog(type: EventType, onDismiss: () -> Unit) {
+    val uriHandler = LocalUriHandler.current
+    val evidence: Evidence = type.evidence
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("${type.emoji} ${type.label}") },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    text = stringResource(
+                        R.string.evidence_value,
+                        type.deltaMinutes.withExplicitSign(),
+                    ),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                ConfidenceBadge(evidence.confidence)
+                EvidenceBlock(stringResource(R.string.evidence_exposure), evidence.exposure)
+                EvidenceBlock(stringResource(R.string.evidence_basis), evidence.basis)
+                EvidenceBlock(stringResource(R.string.evidence_caveat), evidence.caveat)
+                EvidenceBlock(stringResource(R.string.evidence_source), evidence.sourceTitle)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { uriHandler.openUri(evidence.sourceUrl) }) {
+                Text(stringResource(R.string.evidence_open_source))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.evidence_close)) }
+        },
+    )
+}
+
+@Composable
+private fun ConfidenceBadge(confidence: Confidence) {
+    val color = when (confidence) {
+        Confidence.STRONG -> MaterialTheme.colorScheme.primary
+        Confidence.MODERATE -> MaterialTheme.colorScheme.secondary
+        Confidence.WEAK, Confidence.NONE -> MaterialTheme.colorScheme.error
+        Confidence.CHOSEN -> MaterialTheme.colorScheme.tertiary
+    }
+    Text(
+        text = confidence.label,
+        style = MaterialTheme.typography.labelLarge,
+        color = color,
+    )
+}
+
+@Composable
+private fun EvidenceBlock(title: String, body: String) {
+    Column {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(text = body, style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -556,5 +655,8 @@ private fun SectionCard(title: String, content: @Composable () -> Unit) {
 }
 
 /** «+30» читается лучше, чем «30», когда рядом стоит «-15». */
-private fun Int.withExplicitSign(): String = if (this >= 0) "+$this" else toString()
+private fun Int.withExplicitSign(): String = when {
+    this > 0 -> "+$this"
+    else -> toString()
+}
 
