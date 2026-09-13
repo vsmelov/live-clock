@@ -10,6 +10,17 @@
     <string name="remaining_breakdown">%1$s дней · %2$s ч %3$s мин</string>
 
     <string name="actions_title">Действия</string>
+    <string name="actions_search">Поиск действия</string>
+    <string name="actions_nothing_found">Ничего не нашлось по запросу «%1$s»</string>
+    <string name="actions_used_times">%1$d раз</string>
+    <string name="actions_never_used">ни разу</string>
+    <string name="pinned_title">На виджете</string>
+    <string name="pinned_empty">Ничего не закреплено — на виджете будут кнопки по умолчанию</string>
+    <string name="pinned_hint">Звезда закрепляет действие на виджете, стрелки меняют порядок кнопок</string>
+    <string name="pin_add">Закрепить</string>
+    <string name="pin_remove">Открепить</string>
+    <string name="move_up">Выше</string>
+    <string name="move_down">Ниже</string>
     <string name="minutes_delta">%1$s мин</string>
 
     <string name="today_title">Сегодня</string>

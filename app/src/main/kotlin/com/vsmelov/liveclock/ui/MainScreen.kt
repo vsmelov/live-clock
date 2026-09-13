@@ -65,7 +65,12 @@ fun MainScreen(viewModel: MainViewModel, modifier: Modifier = Modifier) {
     ) {
         RemainingHeader(uiState)
 
-        ActionsSection(onLog = viewModel::logEvent)
+        ActionsSection(
+            uiState = uiState,
+            onLog = viewModel::logEvent,
+            onTogglePin = viewModel::togglePinned,
+            onMovePin = viewModel::movePinned,
+        )
 
         TodaySection(uiState = uiState, onUndo = viewModel::undoLastEvent)
 
@@ -139,43 +144,167 @@ private fun Duration.asBreakdown(): String {
 }
 
 /**
- * Сетка всех типов событий — полный набор, а не только те два, что висят
- * на виджете. Строится из EventType.entries, поэтому новый тип появляется
- * здесь сам.
+ * Действия: поиск, закреплённые кнопки виджета и полный список.
+ *
+ * Список строится из EventType.entries, поэтому новый тип появляется
+ * здесь и в поиске сам.
  */
 @Composable
-private fun ActionsSection(onLog: (EventType) -> Unit) {
+private fun ActionsSection(
+    uiState: MainUiState,
+    onLog: (EventType) -> Unit,
+    onTogglePin: (EventType) -> Unit,
+    onMovePin: (EventType, Int) -> Unit,
+) {
+    var query by rememberSaveable { mutableStateOf("") }
+    val found = EventType.entries.filter { it.matches(query) }
+    val searching = query.isNotBlank()
+
     SectionCard(title = stringResource(R.string.actions_title)) {
-        EventType.entries.chunked(COLUMNS).forEach { row ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                row.forEach { type ->
-                    Button(
-                        onClick = { onLog(type) },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("${type.emoji} ${type.label}", textAlign = TextAlign.Center)
-                            Text(
-                                text = stringResource(
-                                    R.string.minutes_delta,
-                                    type.deltaMinutes.withExplicitSign(),
-                                ),
-                                style = MaterialTheme.typography.labelSmall,
-                            )
-                        }
-                    }
+        OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
+            label = { Text(stringResource(R.string.actions_search)) },
+            singleLine = true,
+            trailingIcon = if (searching) {
+                {
+                    TextButton(onClick = { query = "" }) { Text("×") }
                 }
-                // Добиваем неполный ряд, чтобы кнопки не растягивались.
-                repeat(COLUMNS - row.size) {
-                    Spacer(Modifier.weight(1f))
+            } else {
+                null
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        Spacer(Modifier.height(12.dp))
+
+        // Закреплённое прячем во время поиска: там нужен список, а не настройки.
+        if (!searching) {
+            Text(
+                text = stringResource(R.string.pinned_title),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(4.dp))
+
+            if (uiState.pinned.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.pinned_empty),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                uiState.pinned.forEachIndexed { index, type ->
+                    PinnedRow(
+                        type = type,
+                        canMoveUp = index > 0,
+                        canMoveDown = index < uiState.pinned.lastIndex,
+                        onMove = { offset -> onMovePin(type, offset) },
+                        onUnpin = { onTogglePin(type) },
+                    )
                 }
             }
-            Spacer(Modifier.height(8.dp))
+
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = stringResource(R.string.pinned_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider()
+            Spacer(Modifier.height(12.dp))
+        }
+
+        if (found.isEmpty()) {
+            Text(
+                text = stringResource(R.string.actions_nothing_found, query),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            found.forEach { type ->
+                ActionRow(
+                    type = type,
+                    usedTimes = uiState.usageCounts[type] ?: 0,
+                    pinned = type in uiState.pinned,
+                    onLog = { onLog(type) },
+                    onTogglePin = { onTogglePin(type) },
+                )
+            }
         }
     }
+}
+
+/** Строка закреплённого действия: порядок и открепление. */
+@Composable
+private fun PinnedRow(
+    type: EventType,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
+    onMove: (Int) -> Unit,
+    onUnpin: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "${type.emoji} ${type.label}",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(onClick = { onMove(-1) }, enabled = canMoveUp) { Text("↑") }
+        TextButton(onClick = { onMove(1) }, enabled = canMoveDown) { Text("↓") }
+        TextButton(onClick = onUnpin) { Text("★") }
+    }
+}
+
+/**
+ * Строка действия: нажатие по строке записывает событие, звезда —
+ * закрепляет на виджете. Рядом видно, сколько раз действие уже вносили,
+ * чтобы закреплять то, чем реально пользуешься.
+ */
+@Composable
+private fun ActionRow(
+    type: EventType,
+    usedTimes: Int,
+    pinned: Boolean,
+    onLog: () -> Unit,
+    onTogglePin: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Button(onClick = onLog, modifier = Modifier.weight(1f)) {
+            Text(
+                text = "${type.emoji} ${type.label}",
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Start,
+            )
+            Text(
+                text = stringResource(R.string.minutes_delta, type.deltaMinutes.withExplicitSign()),
+                style = MaterialTheme.typography.labelMedium,
+            )
+        }
+        TextButton(onClick = onTogglePin) {
+            Text(
+                text = if (pinned) "★" else "☆",
+                style = MaterialTheme.typography.titleMedium,
+            )
+        }
+    }
+    Text(
+        text = if (usedTimes == 0) {
+            stringResource(R.string.actions_never_used)
+        } else {
+            stringResource(R.string.actions_used_times, usedTimes)
+        },
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = 12.dp, bottom = 6.dp),
+    )
 }
 
 @Composable
@@ -408,4 +537,3 @@ private fun SectionCard(title: String, content: @Composable () -> Unit) {
 /** «+30» читается лучше, чем «30», когда рядом стоит «-15». */
 private fun Int.withExplicitSign(): String = if (this >= 0) "+$this" else toString()
 
-private const val COLUMNS = 2

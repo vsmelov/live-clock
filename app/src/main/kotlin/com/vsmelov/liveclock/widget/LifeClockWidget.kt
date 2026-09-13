@@ -117,8 +117,10 @@ private fun rememberMetrics(): WidgetMetrics {
         tall = tall,
         buttonsPerRow = if (compact) 2 else 3,
         buttonRows = if (tall) 2 else 1,
-        chronometerHeight = if (compact) 24.dp else 34.dp,
-        chronometerSizeSp = if (compact) 17f else 26f,
+        // Запас примерно в 1.6 от кегля: sp растёт вместе с системной
+        // настройкой размера текста, и без запаса цифры обрежет.
+        chronometerHeight = if (compact) 26.dp else 38.dp,
+        chronometerSizeSp = if (compact) 16f else 24f,
     )
 }
 

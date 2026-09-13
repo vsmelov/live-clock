@@ -83,3 +83,71 @@ class EventTypeTest {
         assertNotNull(EventType.fromId("rest"))
     }
 }
+
+/** Поиск по действиям — то, что вводится в строку над списком. */
+class EventTypeSearchTest {
+
+    @Test
+    fun `empty query matches everything`() {
+        EventType.entries.forEach { type ->
+            assertTrue("$type", type.matches(""))
+            assertTrue("$type", type.matches("   "))
+        }
+    }
+
+    @Test
+    fun `search is case insensitive`() {
+        assertTrue(EventType.SMOKE.matches("покурил"))
+        assertTrue(EventType.SMOKE.matches("ПОКУРИЛ"))
+        assertTrue(EventType.SMOKE.matches("ПоКуРиЛ"))
+    }
+
+    @Test
+    fun `search finds a type by how it is called in the head`() {
+        assertTrue(EventType.SMOKE.matches("сижка"))
+        assertTrue(EventType.SMOKE.matches("сигарета"))
+        assertTrue(EventType.DRINK.matches("бухло"))
+        assertTrue(EventType.DRINK.matches("пиво"))
+        assertTrue(EventType.WORKOUT.matches("зал"))
+        assertTrue(EventType.WORKOUT.matches("качалка"))
+    }
+
+    @Test
+    fun `search works in english too`() {
+        assertTrue(EventType.SMOKE.matches("smoke"))
+        assertTrue(EventType.COFFEE.matches("coffee"))
+        assertTrue(EventType.WORKOUT.matches("gym"))
+    }
+
+    @Test
+    fun `search finds a type by its stable id`() {
+        EventType.entries.forEach { type ->
+            assertTrue("$type не находится по своему id", type.matches(type.id))
+        }
+    }
+
+    @Test
+    fun `nonsense query matches nothing`() {
+        val query = "квазимодо"
+        assertTrue(EventType.entries.none { it.matches(query) })
+    }
+
+    @Test
+    fun `surrounding spaces do not break the search`() {
+        assertTrue(EventType.COFFEE.matches("  кофе  "))
+    }
+
+    @Test
+    fun `every type is reachable by typing its own label`() {
+        EventType.entries.forEach { type ->
+            val hits = EventType.entries.filter { it.matches(type.label) }
+            assertTrue("$type не находится по своей подписи", type in hits)
+        }
+    }
+
+    @Test
+    fun `default pinned types exist and are distinct`() {
+        assertTrue(EventType.DEFAULT_PINNED.isNotEmpty())
+        assertEquals(EventType.DEFAULT_PINNED.size, EventType.DEFAULT_PINNED.toSet().size)
+    }
+}

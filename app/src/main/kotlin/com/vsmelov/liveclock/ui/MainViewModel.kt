@@ -28,9 +28,13 @@ import java.time.ZoneId
 data class MainUiState(
     val life: LifeState = LifeState(),
     val sync: SyncSettings = SyncSettings(),
+    val pinned: List<EventType> = EventType.DEFAULT_PINNED,
     val now: Instant = Instant.now(),
     val zone: ZoneId = ZoneId.systemDefault(),
-)
+) {
+    /** Сколько раз каждый тип попадал в лог — подсказка, что стоит закрепить. */
+    val usageCounts: Map<EventType, Int> get() = life.usageCounts()
+}
 
 class MainViewModel(
     private val appContext: Context,
@@ -50,8 +54,13 @@ class MainViewModel(
     }
 
     val uiState: StateFlow<MainUiState> =
-        combine(repository.state, repository.syncSettings, ticker) { life, sync, now ->
-            MainUiState(life = life, sync = sync, now = now)
+        combine(
+            repository.state,
+            repository.syncSettings,
+            repository.pinnedTypes,
+            ticker,
+        ) { life, sync, pinned, now ->
+            MainUiState(life = life, sync = sync, pinned = pinned, now = now)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
@@ -64,6 +73,14 @@ class MainViewModel(
     }
 
     fun undoLastEvent() = mutate { repository.undoLastEvent() }
+
+    /** Закрепить или открепить действие. Виджет перерисуется сразу. */
+    fun togglePinned(type: EventType) = mutate { repository.togglePinned(type) }
+
+    /** Сдвинуть закреплённое действие — порядок задаёт кнопки виджета. */
+    fun movePinned(type: EventType, offset: Int) = mutate {
+        repository.movePinned(type, offset)
+    }
 
     fun setBirthDate(date: LocalDate) = mutate { repository.setBirthDate(date) }
 
