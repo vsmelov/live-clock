@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Activity живёт на ComponentActivity, поэтому appcompat не нужен:
+     хватает системной DayNight-темы, а всё остальное рисует Compose. -->
+<resources>
+    <style name="Theme.LiveClock" parent="@android:style/Theme.DeviceDefault.DayNight">
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+</resources>

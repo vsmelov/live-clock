@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Песочные часы: верхняя чаша полупрозрачная, нижняя полная. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:fillColor="#8FD9C4"
+        android:pathData="M38,30h32v3l-13,15v12l13,15v3h-32v-3l13,-15v-12l-13,-15z" />
+    <path
+        android:fillColor="#F2F7F5"
+        android:pathData="M36,27h36v4h-36z" />
+    <path
+        android:fillColor="#F2F7F5"
+        android:pathData="M36,77h36v4h-36z" />
+    <path
+        android:fillColor="#F2A65A"
+        android:pathData="M45,62h18l7,8v7h-32v-7z" />
+</vector>

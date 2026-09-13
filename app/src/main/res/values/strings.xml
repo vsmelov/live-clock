@@ -4,4 +4,30 @@
     <string name="widget_description">Остаток жизни и кнопки быстрых действий</string>
 
     <string name="years_suffix">лет</string>
+
+    <string name="remaining_title">Осталось</string>
+    <string name="expected_moment">Ожидаемый момент: %1$s</string>
+    <string name="remaining_breakdown">%1$s дней · %2$s ч %3$s мин</string>
+
+    <string name="actions_title">Действия</string>
+    <string name="minutes_delta">%1$s мин</string>
+
+    <string name="today_title">Сегодня</string>
+    <string name="today_empty">Сегодня пока пусто</string>
+    <string name="today_total">Итог за день: %1$s мин</string>
+    <string name="undo_last">Отменить последнее</string>
+
+    <string name="settings_title">Настройки</string>
+    <string name="birth_date_label">Дата рождения</string>
+    <string name="base_expectancy_label">Базовая продолжительность, лет</string>
+    <string name="base_expectancy_invalid">Нужно положительное число, например 80</string>
+
+    <string name="sync_title">Синхронизация</string>
+    <string name="sync_enabled_label">Выгружать события на сервер</string>
+    <string name="sync_url_label">URL (только https)</string>
+    <string name="sync_token_label">Bearer-токен</string>
+    <string name="sync_hint">Выключено по умолчанию. Приложение полностью работает офлайн: источник правды — база на устройстве, сервер её не переписывает.</string>
+
+    <string name="dialog_ok">Ок</string>
+    <string name="dialog_cancel">Отмена</string>
 </resources>
