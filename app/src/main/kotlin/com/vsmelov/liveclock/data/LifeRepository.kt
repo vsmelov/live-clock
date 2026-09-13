@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.map
 import java.io.IOException
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 
 private const val TAG = "LifeRepository"
 private const val DATA_STORE_NAME = "life_clock"
@@ -68,9 +69,23 @@ class LifeRepository(private val dataStore: DataStore<Preferences>) {
         return updated
     }
 
-    /** Запись события. Вызывается и с виджета, и из Activity. */
-    suspend fun addEvent(type: EventType, at: Instant = Instant.now()): LifeState =
-        update { current -> current.plusEvent(LifeEvent.now(type, at)) }
+    /**
+     * Запись события. Вызывается и с виджета, и из Activity.
+     *
+     * Цена считается по текущему логу: у типов с нормой первые события
+     * за период могут стоить иначе, чем последующие. Посчитанное значение
+     * замораживается в событии, поэтому лог остаётся честной записью того,
+     * что происходило, а не пересчитывается задним числом.
+     */
+    suspend fun addEvent(
+        type: EventType,
+        at: Instant = Instant.now(),
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): LifeState = update { current ->
+        current.plusEvent(
+            LifeEvent(type = type, at = at, deltaMinutes = current.deltaFor(type, at, zone)),
+        )
+    }
 
     /** Кнопка «отменить последнее» — промахнуться по виджету слишком легко. */
     suspend fun undoLastEvent(): LifeState = update(LifeState::withoutLastEvent)

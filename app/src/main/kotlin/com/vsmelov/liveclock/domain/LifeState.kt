@@ -20,6 +20,35 @@ data class LifeState(
     /** Суммарная поправка в минутах по всему логу. */
     val totalDeltaMinutes: Int get() = events.sumOf { it.deltaMinutes }
 
+    /**
+     * Сколько будет стоить событие [type], записанное в момент [at].
+     *
+     * У типов с [EventType.dosing] величина зависит от того, сколько таких
+     * событий уже есть в периоде: в пределах нормы одна цена, сверх — другая.
+     * Считается в момент записи и замораживается в [LifeEvent.deltaMinutes],
+     * поэтому лог остаётся честной записью того, что происходило.
+     */
+    fun deltaFor(type: EventType, at: Instant, zone: ZoneId): Int {
+        val dosing = type.dosing ?: return type.deltaMinutes
+        return if (countInPeriod(type, at, zone) < dosing.normal) {
+            dosing.withinNormalMinutes
+        } else {
+            dosing.beyondNormalMinutes
+        }
+    }
+
+    /** Сколько событий типа [type] уже записано в периоде, куда попадает [at]. */
+    fun countInPeriod(type: EventType, at: Instant, zone: ZoneId): Int {
+        val dosing = type.dosing ?: return 0
+        return events.count { it.type == type && dosing.period.isSamePeriod(it.at, at, zone) }
+    }
+
+    /** Сколько ещё осталось до перебора. Отрицательных не бывает. */
+    fun remainingInNorm(type: EventType, at: Instant, zone: ZoneId): Int {
+        val dosing = type.dosing ?: return 0
+        return (dosing.normal - countInPeriod(type, at, zone)).coerceAtLeast(0)
+    }
+
     /** Добавляет событие, сохраняя сортировку по времени. */
     fun plusEvent(event: LifeEvent): LifeState =
         copy(events = (events + event).sortedBy { it.at })
