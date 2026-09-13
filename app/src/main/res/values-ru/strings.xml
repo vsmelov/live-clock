@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from scratchpad/actions.py. Edit the table, not this file. -->
+<resources>
+    <string name="app_name">Live Clock</string>
+    <string name="widget_description">Остаток жизни и кнопки быстрых действий</string>
+    <string name="years_suffix">лет</string>
+    <string name="widget_days_suffix">д</string>
+    <string name="widget_today_suffix">сегодня</string>
+    <string name="remaining_title">Осталось</string>
+    <string name="expected_moment">Ожидаемый момент: %1$s</string>
+    <string name="actions_title">Действия</string>
+    <string name="actions_search">Поиск действия</string>
+    <string name="actions_nothing_found">Ничего не нашлось по запросу «%1$s»</string>
+    <string name="actions_used_times">%1$d раз</string>
+    <string name="actions_never_used">ни разу</string>
+    <string name="minutes_delta">%1$s мин</string>
+    <string name="pinned_title">На виджете</string>
+    <string name="pinned_empty">Ничего не закреплено — на виджете будут кнопки по умолчанию</string>
+    <string name="pinned_hint">Звезда закрепляет действие на виджете, стрелки меняют порядок кнопок</string>
+    <string name="norm_left">норма %1$s: осталось %2$d из %3$d</string>
+    <string name="norm_exceeded">норма %1$s исчерпана (%2$d из %3$d)</string>
+    <string name="evidence_norm">Норма</string>
+    <string name="evidence_norm_body">В пределах нормы (%1$d %2$s) событие стоит %3$s мин, сверх нормы — %4$s мин</string>
+    <string name="evidence_exposure">Что мерили</string>
+    <string name="evidence_basis">Как получено число</string>
+    <string name="evidence_caveat">Чему не верить</string>
+    <string name="evidence_source">Источник</string>
+    <string name="evidence_open_source">Открыть источник</string>
+    <string name="evidence_close">Закрыть</string>
+    <string name="evidence_value">Величина: %1$s мин</string>
+    <string name="today_title">Сегодня</string>
+    <string name="today_empty">Сегодня пока пусто</string>
+    <string name="today_total">Итог за день: %1$s мин</string>
+    <string name="undo_last">Отменить последнее</string>
+    <string name="settings_title">Настройки</string>
+    <string name="birth_date_label">Дата рождения</string>
+    <string name="base_expectancy_label">Базовая продолжительность, лет</string>
+    <string name="base_expectancy_invalid">Нужно положительное число, например 80</string>
+    <string name="sync_title">Синхронизация</string>
+    <string name="sync_enabled_label">Выгружать события на сервер</string>
+    <string name="sync_url_label">URL (только https)</string>
+    <string name="sync_token_label">Bearer-токен</string>
+    <string name="sync_hint">Выключено по умолчанию. Приложение полностью работает офлайн: источник правды — база на устройстве, сервер её не переписывает</string>
+    <string name="dialog_ok">Ок</string>
+    <string name="dialog_cancel">Отмена</string>
+    <string name="language_title">Язык</string>
+    <string name="language_system">Системный</string>
+    <string name="language_english">English</string>
+    <string name="language_russian">Русский</string>
+    <string name="confidence_strong">Надёжно</string>
+    <string name="confidence_moderate">Средне</string>
+    <string name="confidence_weak">Слабо</string>
+    <string name="confidence_none">Эффекта нет</string>
+    <string name="confidence_estimate">Прикидка</string>
+    <string name="confidence_chosen">Твоё значение</string>
+    <string name="period_day">за день</string>
+    <string name="period_week">за неделю</string>
+    <string name="streaks_title">Серии</string>
+    <string name="streaks_empty">Серий пока нет — они начинаются со следующего чистого дня</string>
+    <string name="streak_days">%1$d дней подряд</string>
+    <string name="streak_clean_of">без: %1$s</string>
+    <string name="week_title">За неделю</string>
+    <string name="week_total">Итог за неделю: %1$s мин</string>
+    <string name="week_best">Больше всего дал: %1$s</string>
+    <string name="week_worst">Больше всего забрал: %1$s</string>
+    <string name="week_events">%1$d событий</string>
+    <string name="export_title">Резервная копия</string>
+    <string name="export_hint">Всё живёт только в памяти телефона. Экспорт записывает весь лог в файл, который останется у тебя</string>
+    <string name="export_button">Выгрузить лог в файл</string>
+    <string name="export_done">Сохранено</string>
+    <string name="export_failed">Не удалось сохранить файл</string>
+    <string name="import_button">Восстановить из файла</string>
+    <string name="import_done">Восстановлено: %1$d событий</string>
+    <string name="import_failed">Не удалось прочитать файл</string>
+
+    <!-- smoke -->
+    <string name="action_smoke_label">Покурил</string>
+    <string name="action_smoke_exposure">Две сигареты в день = одна микрожизнь</string>
+    <string name="action_smoke_basis">Таблица микрожизней; связь курения со смертностью — одна из самых твёрдых в эпидемиологии вообще</string>
+    <string name="action_smoke_caveat">Величина усреднена по популяции и по всей жизни курящего. Одна конкретная сигарета ничего не «списывает» буквально</string>
+    <!-- drink -->
+    <string name="action_drink_label">Выпил</string>
+    <string name="action_drink_exposure">Одна доза (10 г спирта)</string>
+    <string name="action_drink_basis">Значение из твоего ТЗ. В источнике алкоголь нелинеен: первая доза за день +1 микрожизнь, каждая следующая до шести — в минус</string>
+    <string name="action_drink_caveat">Норма теперь возвращает форму источника: первая доза за день в плюс, остальные в минус</string>
+    <!-- rest -->
+    <string name="action_rest_label">Отдохнул</string>
+    <string name="action_rest_exposure">Осознанная пауза или дыхательная практика</string>
+    <string name="action_rest_basis">Значение из твоего ТЗ</string>
+    <string name="action_rest_caveat">Строки про осознанный отдых нет ни в одном из источников. Это мотивационная кнопка, а не измеренный эффект</string>
+    <!-- workout -->
+    <string name="action_workout_label">Тренировка</string>
+    <string name="action_workout_exposure">Первые 20 минут умеренной нагрузки, HR 0.81</string>
+    <string name="action_workout_basis">Значение из твоего ТЗ. Источник даёт вдвое больше: первые 20 минут = 2 микрожизни (+60), следующие сорок — ещё до одной</string>
+    <string name="action_workout_caveat">Здесь ты недооцениваешь тренировку вдвое. Поставь 60, чтобы совпало с источником</string>
+    <!-- sleep_short -->
+    <string name="action_sleep_short_label">Недосып, меньше 7 ч</string>
+    <string name="action_sleep_short_exposure">Меньше 7 часов сна за ночь против нормы 7–8</string>
+    <string name="action_sleep_short_basis">Мета-анализ, HR 1.14 → −1.43 микрожизни в день по формуле статьи. Связь U-образная: 9+ часов ещё хуже, HR 1.34</string>
+    <string name="action_sleep_short_caveat">Кнопки «выспался» нет намеренно: 7–8 часов — это точка отсчёта, а не бонус. Длинный сон почти наверняка обратная причинность — больные спят дольше</string>
+    <!-- late_night -->
+    <string name="action_late_night_label">Лёг после 2 ночи</string>
+    <string name="action_late_night_exposure">Выраженный вечерний хронотип против утреннего</string>
+    <string name="action_late_night_basis">UK Biobank, 433 268 человек, 6.5 лет. HR 1.10 → −1.04 микрожизни в день по формуле статьи</string>
+    <string name="action_late_night_caveat">Мерили самоопределение «сова или жаворонок», а не время отбоя. И это скорее про рассогласование с графиком работы, чем про сам хронотип: более поздняя работа часть вреда снимает</string>
+    <!-- social -->
+    <string name="action_social_label">Живое общение</string>
+    <string name="action_social_exposure">Отсутствие социальной изоляции, за день</string>
+    <string name="action_social_basis">Мета-анализ: 148 работ, 308 849 человек. Взят OR 1.29 для изоляции → +2.78 микрожизни в день. Контраст «сильные против слабых связей» даёт 1.50, но он крайний и для одной кнопки завышал бы</string>
+    <string name="action_social_caveat">Самый большой плюс в списке — и это не ошибка: по силе связи одиночество сопоставимо с курением. Но одно нажатие не переводит человека из изолированных в общительные</string>
+    <!-- sex -->
+    <string name="action_sex_label">Секс</string>
+    <string name="action_sex_exposure">+100 оргазмов в год, мужчины 45–59 лет</string>
+    <string name="action_sex_basis">Caerphilly, 918 мужчин, 10 лет. OR 0.64 → по формуле около +530 минут за раз. Это неправдоподобно много, поэтому взята консервативная оценка на уровне тренировки</string>
+    <string name="action_sex_caveat">Число выбрано мной, а не работой. Выборка мелкая и старая (1997), самоотчёт, и почти наверняка обратная причинность: у больных людей секса меньше, а не наоборот</string>
+    <!-- walk -->
+    <string name="action_walk_label">Километр пешком</string>
+    <string name="action_walk_exposure">Километр ходьбы</string>
+    <string name="action_walk_basis">Расширенная таблица микрожизней, +0.4 микрожизни на километр</string>
+    <string name="action_walk_caveat">В самой статье BMJ этой строки нет, только в пересказе. С основной строкой про нагрузку согласуется по порядку величины</string>
+    <!-- nature -->
+    <string name="action_nature_label">День на природе</string>
+    <string name="action_nature_exposure">+0.1 NDVI зелени в радиусе 500 м от дома</string>
+    <string name="action_nature_basis">Мета-анализ когорт, HR 0.96 → +0.45 микрожизни в день</string>
+    <string name="action_nature_caveat">Мерили зелень вокруг жилья, а не вылазки на выходных. Разовый выезд этому не равен, так что величина скорее символическая</string>
+    <!-- air_pollution -->
+    <string name="action_air_pollution_label">День в смоге</string>
+    <string name="action_air_pollution_exposure">Жизнь в Мехико против Лондона, −0.6 микрожизни в день</string>
+    <string name="action_air_pollution_basis">Строка из таблицы микрожизней</string>
+    <string name="action_air_pollution_caveat">Важно: сам по себе большой город в развитых странах в плюсе, а не в минусе — горожане живут дольше сельских, и разрыв растёт. Воздух хуже, но доступ к медицине перевешивает. Эта кнопка про смог, а не про город</string>
+    <!-- coffee -->
+    <string name="action_coffee_label">Кофе</string>
+    <string name="action_coffee_exposure">2–3 чашки в день, HR 0.90</string>
+    <string name="action_coffee_basis">Таблица даёт +1 микрожизнь за 2–3 чашки, отсюда треть на чашку</string>
+    <string name="action_coffee_caveat">Наблюдательное. Кофе пьют работающие и социально активные — часть эффекта наверняка их, а не кофе</string>
+    <!-- vegetables -->
+    <string name="action_vegetables_label">Овощи, порция</string>
+    <string name="action_vegetables_exposure">≥5 порций в день, HR 0.66 у мужчин</string>
+    <string name="action_vegetables_basis">Таблица даёт +4 микрожизни за ПЯТЬ порций, здесь поделено на пять</string>
+    <string name="action_vegetables_caveat">Самая шаткая строка в таблице. Мерили не порции, а витамин C в крови выше 50 нмоль/л — маркер, который заодно метит тех, кто в целом лучше живёт. Минус треть смертности от овощей как причинный эффект неправдоподобен</string>
+    <!-- red_meat -->
+    <string name="action_red_meat_label">Красное мясо, 85 г</string>
+    <string name="action_red_meat_exposure">Одна порция 85 г (3 унции) в день, пожизненно с 35 лет</string>
+    <string name="action_red_meat_basis">Гарвардские когорты, 121 342 человека. HR 1.13 для необработанного, 1.20 для обработанного</string>
+    <string name="action_red_meat_caveat">Порция меньше, чем кажется — примерно котлета для бургера. Норма за неделю здесь и важна: исследования меряют ЛИШНЮЮ порцию сверх привычного, так что мясо пару раз в неделю — это фон, а не грех</string>
+    <!-- fast_food -->
+    <string name="action_fast_food_label">Фастфуд</string>
+    <string name="action_fast_food_exposure">Один бургер</string>
+    <string name="action_fast_food_basis">Названо в тексте статьи в одном ряду с порцией мяса и двумя сигаретами — одна микрожизнь</string>
+    <string name="action_fast_food_caveat">Отдельной строки в таблице нет, только упоминание в тексте. Скорее всего это та же строка про красное мясо другими словами</string>
+    <!-- tv -->
+    <string name="action_tv_label">Час у экрана</string>
+    <string name="action_tv_exposure">Два часа телевизора в день, HR 1.08</string>
+    <string name="action_tv_basis">Таблица даёт −1 микрожизнь за два часа, отсюда половина на час</string>
+    <string name="action_tv_caveat">Мерили телевизор, а не экран вообще. Вред приписывают сидению, так что работа за столом, вероятно, считается так же</string>
+    <!-- pet -->
+    <string name="action_pet_label">С питомцем</string>
+    <string name="action_pet_exposure">День с кошкой или собакой</string>
+    <string name="action_pet_basis">Строка из расширенной таблицы, +1 микрожизнь</string>
+    <string name="action_pet_caveat">В статье BMJ этой строки нет вообще, и ссылки на исследование при ней не приведено. Доверия меньше, чем к остальным</string>
+    <!-- active_mind -->
+    <string name="action_active_mind_label">Учился</string>
+    <string name="action_active_mind_exposure">День умственной нагрузки</string>
+    <string name="action_active_mind_basis">Строка из расширенной таблицы, +4 микрожизни</string>
+    <string name="action_active_mind_caveat">В статье BMJ этой строки нет, ссылки на исследование не приведено. При этом величина огромная — вторая по размеру в списке. Верить рано</string>
+    <!-- water -->
+    <string name="action_water_label">Стакан воды</string>
+    <string name="action_water_exposure">Натрий в крови в верхней части нормы, 11 255 человек, 30 лет</string>
+    <string name="action_water_basis">Ноль — это результат проверки, а не заглушка</string>
+    <string name="action_water_caveat">Громкое исследование про гидратацию мерило натрий в крови, а не выпитую воду. Что «пить больше воды» продлевает жизнь — не показано. Пей по жажде</string>
+    <!-- multivitamin -->
+    <string name="action_multivitamin_label">Мультивитамины</string>
+    <string name="action_multivitamin_exposure">Ежедневный приём мультивитаминов</string>
+    <string name="action_multivitamin_basis">390 124 здоровых человека, более 20 лет наблюдения. Выигрыша по смертности нет — ни общей, ни от рака, ни от сердца</string>
+    <string name="action_multivitamin_caveat">Это про здоровых людей и про продление жизни. При доказанном дефиците конкретного витамина речь совсем о другом</string>
+    <!-- sauna -->
+    <string name="action_sauna_label">Сауна или баня</string>
+    <string name="action_sauna_exposure">4–7 посещений в неделю против одного, HR 0.60</string>
+    <string name="action_sauna_basis">Kuopio, 2315 мужчин, наблюдение 20.7 года</string>
+    <string name="action_sauna_caveat">HR 0.60 далеко за пределами диапазона, для которого формула обещана (0.75–1.3), так что число завышено. В том же журнале вышел отдельный комментарий о том, что связь может быть непричинной: часто парятся те, кто и так здоров и не работает на трёх работах</string>
+    <!-- nuts -->
+    <string name="action_nuts_label">Горсть орехов</string>
+    <string name="action_nuts_exposure">Орехи 7+ раз в неделю против нуля, HR 0.80</string>
+    <string name="action_nuts_basis">Гарвардские когорты, 118 962 человека, чёткая доза-ответ: реже раза в неделю 0.93, два-четыре раза 0.87, каждый день 0.80</string>
+    <string name="action_nuts_caveat">Наблюдательное, и орехи едят люди с деньгами и привычкой следить за едой. Зато доза-ответ ровная, а это хороший признак</string>
+    <!-- bike_commute -->
+    <string name="action_bike_commute_label">Доехал на велосипеде</string>
+    <string name="action_bike_commute_exposure">Дорога на работу на велосипеде, HR 0.59</string>
+    <string name="action_bike_commute_basis">UK Biobank, 263 450 человек, 5 лет</string>
+    <string name="action_bike_commute_caveat">Самый крупный плюс в списке и самый подозрительный: HR 0.59 далеко вне диапазона формулы, а на велосипеде на работу ездят молодые, здоровые и живущие близко. Считай это верхней границей</string>
+    <!-- running -->
+    <string name="action_running_label">Пробежка</string>
+    <string name="action_running_exposure">Бегуны против небегающих, HR 0.70</string>
+    <string name="action_running_basis">55 137 человек, 15 лет. Даже 5–10 минут в день дают тот же эффект, что и больше — порог низкий</string>
+    <string name="action_running_caveat">HR 0.70 чуть вне диапазона формулы. И бегают те, кто может бегать: больные не бегают, а умирают чаще</string>
+    <!-- fish -->
+    <string name="action_fish_label">Рыба, порция</string>
+    <string name="action_fish_exposure">Порция рыбы вместо порции красного мяса</string>
+    <string name="action_fish_basis">Замена красного мяса рыбой связана со снижением смертности во всех крупных когортах. Величина взята небольшой положительной</string>
+    <string name="action_fish_caveat">Величина назначена мной по порядку соседних строк, а не взята из работы. Направление эффекта общепринято, размер — нет</string>
+    <!-- sugary_drink -->
+    <string name="action_sugary_drink_label">Сладкая газировка</string>
+    <string name="action_sugary_drink_exposure">Сверх двух банок в неделю</string>
+    <string name="action_sugary_drink_basis">Сладкие напитки устойчиво связаны с диабетом и смертностью. Величина взята чуть меньше порции красного мяса</string>
+    <string name="action_sugary_drink_caveat">Величина назначена мной по порядку соседних строк, а не взята из работы. Направление эффекта общепринято, размер — нет</string>
+    <!-- sweets -->
+    <string name="action_sweets_label">Сладкое</string>
+    <string name="action_sweets_exposure">Сверх одного десерта в день</string>
+    <string name="action_sweets_basis">Величина взята небольшой: один десерт в день — это фон, а не фактор риска</string>
+    <string name="action_sweets_caveat">Величина назначена мной по порядку соседних строк, а не взята из работы. Направление эффекта общепринято, размер — нет</string>
+    <!-- stress -->
+    <string name="action_stress_label">Тяжёлый стресс</string>
+    <string name="action_stress_exposure">День сильного стресса или конфликта</string>
+    <string name="action_stress_basis">Хронический стресс связан со смертностью через сердце и поведение. Разовый день — величина взята небольшой</string>
+    <string name="action_stress_caveat">Величина назначена мной по порядку соседних строк, а не взята из работы. Направление эффекта общепринято, размер — нет. И разовый стресс с хроническим смешивать нельзя: вредит второй</string>
+    <!-- reading -->
+    <string name="action_reading_label">Полчаса книги</string>
+    <string name="action_reading_exposure">Полчаса чтения книг</string>
+    <string name="action_reading_basis">Есть известная работа Йельского университета про читающих книги, но величина здесь назначена мной по порядку соседних строк</string>
+    <string name="action_reading_caveat">Величина назначена мной по порядку соседних строк, а не взята из работы. Направление эффекта общепринято, размер — нет. Читают книги люди с образованием и достатком — эффект почти наверняка не от самого чтения</string>
+    <!-- floss -->
+    <string name="action_floss_label">Зубная нить</string>
+    <string name="action_floss_exposure">Чистка межзубных промежутков за день</string>
+    <string name="action_floss_basis">Болезни дёсен связаны с сердечно-сосудистой смертностью. Величина взята маленькой</string>
+    <string name="action_floss_caveat">Величина назначена мной по порядку соседних строк, а не взята из работы. Направление эффекта общепринято, размер — нет. Причинность тут спорна даже сильнее обычного: за зубами следят те, кто следит и за остальным</string>
+    <!-- tea -->
+    <string name="action_tea_label">Чай</string>
+    <string name="action_tea_exposure">Чашка чая</string>
+    <string name="action_tea_basis">По аналогии с кофе, но осторожнее: доказательная база слабее. Взята треть от кофейной величины</string>
+    <string name="action_tea_caveat">Величина назначена мной по порядку соседних строк, а не взята из работы. Направление эффекта общепринято, размер — нет</string>
+    <!-- nap -->
+    <string name="action_nap_label">Дневной сон</string>
+    <string name="action_nap_exposure">Короткий сон днём</string>
+    <string name="action_nap_basis">Короткий дневной сон обычно связывают с пользой, длинный — с вредом. Величина взята символической</string>
+    <string name="action_nap_caveat">Величина назначена мной по порядку соседних строк, а не взята из работы. Направление эффекта общепринято, размер — нет. Длинный дневной сон в работах уходит в минус, и это скорее признак болезни, чем её причина</string>
+    <!-- flu_shot -->
+    <string name="action_flu_shot_label">Привился от гриппа</string>
+    <string name="action_flu_shot_exposure">Сезонная прививка</string>
+    <string name="action_flu_shot_basis">Одна из немногих строк здесь, где есть рандомизированные испытания, а не только наблюдения. Но перевод в минуты жизни для здорового человека 30 лет — моя прикидка</string>
+    <string name="action_flu_shot_caveat">Величина назначена мной по порядку соседних строк, а не взята из работы. Направление эффекта общепринято, размер — нет. Основная польза приходится на пожилых и людей с хроническими болезнями</string>
+</resources>

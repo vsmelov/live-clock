@@ -1,55 +1,274 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from scratchpad/actions.py. Edit the table, not this file. -->
 <resources>
     <string name="app_name">Live Clock</string>
-    <string name="widget_description">Остаток жизни и кнопки быстрых действий</string>
+    <string name="widget_description">Life remaining and quick action buttons</string>
+    <string name="years_suffix">years</string>
+    <string name="widget_days_suffix">d</string>
+    <string name="widget_today_suffix">today</string>
+    <string name="remaining_title">Remaining</string>
+    <string name="expected_moment">Expected moment: %1$s</string>
+    <string name="actions_title">Actions</string>
+    <string name="actions_search">Search actions</string>
+    <string name="actions_nothing_found">Nothing found for «%1$s»</string>
+    <string name="actions_used_times">%1$d times</string>
+    <string name="actions_never_used">never</string>
+    <string name="minutes_delta">%1$s min</string>
+    <string name="pinned_title">On the widget</string>
+    <string name="pinned_empty">Nothing pinned — the widget will show default buttons</string>
+    <string name="pinned_hint">The star pins an action to the widget, the arrows reorder the buttons</string>
+    <string name="norm_left">norm %1$s: %2$d of %3$d left</string>
+    <string name="norm_exceeded">norm %1$s used up (%2$d of %3$d)</string>
+    <string name="evidence_norm">Norm</string>
+    <string name="evidence_norm_body">Within the norm (%1$d %2$s) an event costs %3$s min, beyond it %4$s min</string>
+    <string name="evidence_exposure">What was measured</string>
+    <string name="evidence_basis">How the number was derived</string>
+    <string name="evidence_caveat">What not to trust</string>
+    <string name="evidence_source">Source</string>
+    <string name="evidence_open_source">Open source</string>
+    <string name="evidence_close">Close</string>
+    <string name="evidence_value">Value: %1$s min</string>
+    <string name="today_title">Today</string>
+    <string name="today_empty">Nothing logged today yet</string>
+    <string name="today_total">Day total: %1$s min</string>
+    <string name="undo_last">Undo last</string>
+    <string name="settings_title">Settings</string>
+    <string name="birth_date_label">Date of birth</string>
+    <string name="base_expectancy_label">Base life expectancy, years</string>
+    <string name="base_expectancy_invalid">A positive number is required, for example 80</string>
+    <string name="sync_title">Sync</string>
+    <string name="sync_enabled_label">Upload events to a server</string>
+    <string name="sync_url_label">URL (https only)</string>
+    <string name="sync_token_label">Bearer token</string>
+    <string name="sync_hint">Off by default. The app works fully offline: the source of truth is the database on the device, and the server never overwrites it</string>
+    <string name="dialog_ok">OK</string>
+    <string name="dialog_cancel">Cancel</string>
+    <string name="language_title">Language</string>
+    <string name="language_system">System</string>
+    <string name="language_english">English</string>
+    <string name="language_russian">Русский</string>
+    <string name="confidence_strong">Solid</string>
+    <string name="confidence_moderate">Moderate</string>
+    <string name="confidence_weak">Weak</string>
+    <string name="confidence_none">No effect</string>
+    <string name="confidence_estimate">Estimate</string>
+    <string name="confidence_chosen">Your value</string>
+    <string name="period_day">per day</string>
+    <string name="period_week">per week</string>
+    <string name="streaks_title">Streaks</string>
+    <string name="streaks_empty">No streaks yet — they start the day after a clean day</string>
+    <string name="streak_days">%1$d days in a row</string>
+    <string name="streak_clean_of">clean of %1$s</string>
+    <string name="week_title">This week</string>
+    <string name="week_total">Week total: %1$s min</string>
+    <string name="week_best">Biggest gain: %1$s</string>
+    <string name="week_worst">Biggest loss: %1$s</string>
+    <string name="week_events">%1$d events</string>
+    <string name="export_title">Backup</string>
+    <string name="export_hint">Everything lives only in this phone\'s memory. Export writes the whole log to a file you keep</string>
+    <string name="export_button">Export log to a file</string>
+    <string name="export_done">Saved</string>
+    <string name="export_failed">Could not save the file</string>
+    <string name="import_button">Restore from a file</string>
+    <string name="import_done">Restored: %1$d events</string>
+    <string name="import_failed">Could not read the file</string>
 
-    <string name="years_suffix">лет</string>
-
-    <string name="remaining_title">Осталось</string>
-    <string name="expected_moment">Ожидаемый момент: %1$s</string>
-
-    <string name="actions_title">Действия</string>
-    <string name="actions_search">Поиск действия</string>
-    <string name="actions_nothing_found">Ничего не нашлось по запросу «%1$s»</string>
-    <string name="actions_used_times">%1$d раз</string>
-    <string name="actions_never_used">ни разу</string>
-    <string name="pinned_title">На виджете</string>
-    <string name="pinned_empty">Ничего не закреплено — на виджете будут кнопки по умолчанию</string>
-    <string name="pinned_hint">Звезда закрепляет действие на виджете, стрелки меняют порядок кнопок</string>
-    <string name="norm_left">норма %1$s: осталось %2$d из %3$d</string>
-    <string name="norm_exceeded">норма %1$s исчерпана (%2$d из %3$d)</string>
-    <string name="evidence_norm">Норма</string>
-    <string name="evidence_norm_body">В пределах нормы (%1$d %2$s) событие стоит %3$s мин, сверх нормы — %4$s мин</string>
-    <string name="evidence_open">Откуда цифра</string>
-    <string name="evidence_exposure">Что мерили</string>
-    <string name="evidence_basis">Как получено число</string>
-    <string name="evidence_caveat">Чему не верить</string>
-    <string name="evidence_source">Источник</string>
-    <string name="evidence_open_source">Открыть источник</string>
-    <string name="evidence_close">Закрыть</string>
-    <string name="evidence_value">Величина: %1$s мин</string>
-    <string name="pin_add">Закрепить</string>
-    <string name="pin_remove">Открепить</string>
-    <string name="move_up">Выше</string>
-    <string name="move_down">Ниже</string>
-    <string name="minutes_delta">%1$s мин</string>
-
-    <string name="today_title">Сегодня</string>
-    <string name="today_empty">Сегодня пока пусто</string>
-    <string name="today_total">Итог за день: %1$s мин</string>
-    <string name="undo_last">Отменить последнее</string>
-
-    <string name="settings_title">Настройки</string>
-    <string name="birth_date_label">Дата рождения</string>
-    <string name="base_expectancy_label">Базовая продолжительность, лет</string>
-    <string name="base_expectancy_invalid">Нужно положительное число, например 80</string>
-
-    <string name="sync_title">Синхронизация</string>
-    <string name="sync_enabled_label">Выгружать события на сервер</string>
-    <string name="sync_url_label">URL (только https)</string>
-    <string name="sync_token_label">Bearer-токен</string>
-    <string name="sync_hint">Выключено по умолчанию. Приложение полностью работает офлайн: источник правды — база на устройстве, сервер её не переписывает.</string>
-
-    <string name="dialog_ok">Ок</string>
-    <string name="dialog_cancel">Отмена</string>
+    <!-- smoke -->
+    <string name="action_smoke_label">Smoked</string>
+    <string name="action_smoke_exposure">Two cigarettes a day = one microlife</string>
+    <string name="action_smoke_basis">Microlives table; the link between smoking and mortality is among the firmest in all of epidemiology</string>
+    <string name="action_smoke_caveat">The figure is averaged over a population and over a smoker\'s whole life. One particular cigarette does not literally deduct anything</string>
+    <string name="action_smoke_keywords" translatable="false">сигарета курить сижка табак дым smoke cigarette</string>
+    <!-- drink -->
+    <string name="action_drink_label">Had a drink</string>
+    <string name="action_drink_exposure">One drink (10 g of alcohol)</string>
+    <string name="action_drink_basis">Your value. The source is non-linear: the first drink of the day is +1 microlife, each of the next up to six goes negative</string>
+    <string name="action_drink_caveat">The norm now restores the source\'s shape: the first drink of the day helps, the rest cost</string>
+    <string name="action_drink_keywords" translatable="false">алкоголь бокал пиво вино бухло drink alcohol beer wine</string>
+    <!-- rest -->
+    <string name="action_rest_label">Rested</string>
+    <string name="action_rest_exposure">A deliberate pause or breathing practice</string>
+    <string name="action_rest_basis">Your value</string>
+    <string name="action_rest_caveat">No source has a row for deliberate rest. This is a motivational button, not a measured effect</string>
+    <string name="action_rest_keywords" translatable="false">отдых дыхание медитация пауза rest breathe meditation</string>
+    <!-- workout -->
+    <string name="action_workout_label">Workout</string>
+    <string name="action_workout_exposure">First 20 minutes of moderate exercise, HR 0.81</string>
+    <string name="action_workout_basis">Your value. The source gives twice as much: the first 20 minutes are 2 microlives (+60), the next forty add up to one more</string>
+    <string name="action_workout_caveat">You are undervaluing exercise twofold here. Set 60 to match the source</string>
+    <string name="action_workout_keywords" translatable="false">спорт зал качалка тренировка workout gym sport training</string>
+    <!-- sleep_short -->
+    <string name="action_sleep_short_label">Slept under 7 h</string>
+    <string name="action_sleep_short_exposure">Under 7 hours a night against the 7–8 reference</string>
+    <string name="action_sleep_short_basis">Meta-analysis, HR 1.14 → −1.43 microlives a day by the paper\'s formula. The curve is U-shaped: 9+ hours is worse still, HR 1.34</string>
+    <string name="action_sleep_short_caveat">There is deliberately no «slept well» button: 7–8 hours is the reference point, not a bonus. Long sleep is almost certainly reverse causation — sick people sleep more</string>
+    <string name="action_sleep_short_keywords" translatable="false">сон недосып мало спал не выспался sleep deprivation</string>
+    <!-- late_night -->
+    <string name="action_late_night_label">Went to bed after 2 am</string>
+    <string name="action_late_night_exposure">Definite evening chronotype against morning</string>
+    <string name="action_late_night_basis">UK Biobank, 433,268 people, 6.5 years. HR 1.10 → −1.04 microlives a day by the paper\'s formula</string>
+    <string name="action_late_night_caveat">They measured self-described «owl or lark», not bedtime. And it is more about clashing with your work schedule than about the chronotype itself: later working hours remove part of the harm</string>
+    <string name="action_late_night_keywords" translatable="false">сова поздно ночь режим сдвиг хронотип owl chronotype</string>
+    <!-- social -->
+    <string name="action_social_label">Time with people</string>
+    <string name="action_social_exposure">Not being socially isolated, per day</string>
+    <string name="action_social_basis">Meta-analysis: 148 studies, 308,849 people. Taken from OR 1.29 for isolation → +2.78 microlives a day. The «strong versus weak ties» contrast gives 1.50 but it is an extreme one and would overstate a single button</string>
+    <string name="action_social_caveat">The largest plus in the list, and that is not a mistake: by effect size loneliness is comparable to smoking. But one tap does not move a person from isolated to connected</string>
+    <string name="action_social_keywords" translatable="false">друзья общение встреча люди социальное social friends</string>
+    <!-- sex -->
+    <string name="action_sex_label">Sex</string>
+    <string name="action_sex_exposure">+100 orgasms a year, men aged 45–59</string>
+    <string name="action_sex_basis">Caerphilly, 918 men, 10 years. OR 0.64 → roughly +530 minutes per event by the formula. That is implausibly large, so a conservative figure at the level of a workout was taken instead</string>
+    <string name="action_sex_caveat">The number is mine, not the study\'s. Small and old sample (1997), self-reported, and almost certainly reverse causation: ill people have less sex, not the other way round</string>
+    <string name="action_sex_keywords" translatable="false">секс интим близость sex intimacy</string>
+    <!-- walk -->
+    <string name="action_walk_label">A kilometre on foot</string>
+    <string name="action_walk_exposure">One kilometre of walking</string>
+    <string name="action_walk_basis">Extended microlives table, +0.4 microlives per kilometre</string>
+    <string name="action_walk_caveat">This row is not in the BMJ paper itself, only in the retelling. It is consistent in order of magnitude with the main exercise row</string>
+    <string name="action_walk_keywords" translatable="false">ходьба прогулка шаги walk walking steps</string>
+    <!-- nature -->
+    <string name="action_nature_label">A day outdoors</string>
+    <string name="action_nature_exposure">+0.1 NDVI of greenness within 500 m of home</string>
+    <string name="action_nature_basis">Meta-analysis of cohorts, HR 0.96 → +0.45 microlives a day</string>
+    <string name="action_nature_caveat">They measured greenness around housing, not weekend trips. A one-off outing is not the same thing, so the figure is more symbolic than measured</string>
+    <string name="action_nature_keywords" translatable="false">природа лес парк зелень дача nature green outdoors</string>
+    <!-- air_pollution -->
+    <string name="action_air_pollution_label">A day in smog</string>
+    <string name="action_air_pollution_exposure">Living in Mexico City versus London, −0.6 microlives a day</string>
+    <string name="action_air_pollution_basis">A row from the microlives table</string>
+    <string name="action_air_pollution_caveat">Important: a big city by itself is a plus, not a minus, in developed countries — city dwellers outlive rural ones and the gap is widening. The air is worse, but access to healthcare outweighs it. This button is about smog, not about cities</string>
+    <string name="action_air_pollution_keywords" translatable="false">смог воздух грязь пыль выхлопы pm25 air pollution smog</string>
+    <!-- coffee -->
+    <string name="action_coffee_label">Coffee</string>
+    <string name="action_coffee_exposure">2–3 cups a day, HR 0.90</string>
+    <string name="action_coffee_basis">The table gives +1 microlife for 2–3 cups, hence a third of that per cup</string>
+    <string name="action_coffee_caveat">Observational. Coffee is drunk by the employed and socially active — part of the effect is surely theirs, not the coffee\'s</string>
+    <string name="action_coffee_keywords" translatable="false">кофе эспрессо капучино coffee espresso</string>
+    <!-- vegetables -->
+    <string name="action_vegetables_label">Vegetables, one serving</string>
+    <string name="action_vegetables_exposure">≥5 servings a day, HR 0.66 in men</string>
+    <string name="action_vegetables_basis">The table gives +4 microlives for FIVE servings; divided by five here</string>
+    <string name="action_vegetables_caveat">The shakiest row in the table. They measured not servings but blood vitamin C above 50 nmol/L — a marker that also flags people who live better overall. A third off mortality from vegetables is implausible as a causal effect</string>
+    <string name="action_vegetables_keywords" translatable="false">овощи салат фрукты зелень vegetables fruit salad</string>
+    <!-- red_meat -->
+    <string name="action_red_meat_label">Red meat, 85 g</string>
+    <string name="action_red_meat_exposure">One 85 g (3 oz) serving a day, lifelong from age 35</string>
+    <string name="action_red_meat_basis">Harvard cohorts, 121,342 people. HR 1.13 for unprocessed, 1.20 for processed</string>
+    <string name="action_red_meat_caveat">The serving is smaller than it sounds — about one burger patty. The weekly norm matters here: the studies measure an EXTRA serving on top of habit, so meat a couple of times a week is the baseline, not a sin</string>
+    <string name="action_red_meat_keywords" translatable="false">мясо стейк говядина свинина meat steak beef pork</string>
+    <!-- fast_food -->
+    <string name="action_fast_food_label">Fast food</string>
+    <string name="action_fast_food_exposure">One burger</string>
+    <string name="action_fast_food_basis">Named in the paper\'s text alongside a serving of meat and two cigarettes — one microlife</string>
+    <string name="action_fast_food_caveat">There is no separate table row, only a mention in the text. It is most likely the red meat row in other words</string>
+    <string name="action_fast_food_keywords" translatable="false">бургер фастфуд макдак картошка шаурма burger fast food</string>
+    <!-- tv -->
+    <string name="action_tv_label">An hour of screen time</string>
+    <string name="action_tv_exposure">Two hours of television a day, HR 1.08</string>
+    <string name="action_tv_basis">The table gives −1 microlife for two hours, hence half per hour</string>
+    <string name="action_tv_caveat">They measured television, not screens in general. The harm is attributed to sitting, so desk work probably counts the same</string>
+    <string name="action_tv_keywords" translatable="false">телевизор сериал ютуб скроллинг лежал tv screen scrolling</string>
+    <!-- pet -->
+    <string name="action_pet_label">Time with a pet</string>
+    <string name="action_pet_exposure">A day with a cat or dog</string>
+    <string name="action_pet_basis">A row from the extended table, +1 microlife</string>
+    <string name="action_pet_caveat">This row is not in the BMJ paper at all, and no study is cited for it. Trust it less than the rest</string>
+    <string name="action_pet_keywords" translatable="false">кот собака питомец гулял с собакой pet dog cat</string>
+    <!-- active_mind -->
+    <string name="action_active_mind_label">Studied</string>
+    <string name="action_active_mind_exposure">A day of mental exertion</string>
+    <string name="action_active_mind_basis">A row from the extended table, +4 microlives</string>
+    <string name="action_active_mind_caveat">Not in the BMJ paper, no study cited. And the figure is huge — second largest in the list. Too early to trust</string>
+    <string name="action_active_mind_keywords" translatable="false">мозг учёба чтение книга задача mind study learning</string>
+    <!-- water -->
+    <string name="action_water_label">A glass of water</string>
+    <string name="action_water_exposure">Serum sodium in the upper normal range, 11,255 people, 30 years</string>
+    <string name="action_water_basis">Zero is the result of checking, not a placeholder</string>
+    <string name="action_water_caveat">The famous hydration study measured sodium in blood, not water drunk. That «drinking more water» extends life has not been shown. Drink when thirsty</string>
+    <string name="action_water_keywords" translatable="false">вода стакан пить гидратация water hydration</string>
+    <!-- multivitamin -->
+    <string name="action_multivitamin_label">Multivitamins</string>
+    <string name="action_multivitamin_exposure">Daily multivitamin use</string>
+    <string name="action_multivitamin_basis">390,124 healthy people, over 20 years of follow-up. No mortality benefit — not all-cause, not cancer, not heart</string>
+    <string name="action_multivitamin_caveat">This is about healthy people and about extending life. A proven deficiency of a specific vitamin is an entirely different matter</string>
+    <string name="action_multivitamin_keywords" translatable="false">витамины бады таблетки добавки vitamin supplement</string>
+    <!-- sauna -->
+    <string name="action_sauna_label">Sauna</string>
+    <string name="action_sauna_exposure">4–7 sessions a week against one, HR 0.60</string>
+    <string name="action_sauna_basis">Kuopio cohort, 2,315 men, 20.7 years of follow-up</string>
+    <string name="action_sauna_caveat">HR 0.60 is far outside the range the formula is promised for (0.75–1.3), so the number is inflated. The same journal ran a separate commentary arguing the link may be non-causal: frequent sauna-goers tend to be healthy and not working three jobs already</string>
+    <string name="action_sauna_keywords" translatable="false">сауна баня парная хамам sauna steam</string>
+    <!-- nuts -->
+    <string name="action_nuts_label">A handful of nuts</string>
+    <string name="action_nuts_exposure">Nuts 7+ times a week against none, HR 0.80</string>
+    <string name="action_nuts_basis">Harvard cohorts, 118,962 people, with a clean dose-response: under once a week 0.93, two to four times 0.87, daily 0.80</string>
+    <string name="action_nuts_caveat">Observational, and nuts are eaten by people with money and a habit of watching what they eat. The dose-response is smooth though, which is a good sign</string>
+    <string name="action_nuts_keywords" translatable="false">орехи миндаль грецкие фундук nuts almonds</string>
+    <!-- bike_commute -->
+    <string name="action_bike_commute_label">Cycled instead of driving</string>
+    <string name="action_bike_commute_exposure">Commuting to work by bicycle, HR 0.59</string>
+    <string name="action_bike_commute_basis">UK Biobank, 263,450 people, 5 years</string>
+    <string name="action_bike_commute_caveat">The largest plus in the list and the most suspect: HR 0.59 is far outside the formula\'s range, and people who bike to work are young, healthy and live close by. Treat it as an upper bound</string>
+    <string name="action_bike_commute_keywords" translatable="false">велосипед вело самокат доехал bike cycling commute</string>
+    <!-- running -->
+    <string name="action_running_label">Went for a run</string>
+    <string name="action_running_exposure">Runners against non-runners, HR 0.70</string>
+    <string name="action_running_basis">55,137 people, 15 years. Even 5–10 minutes a day gives the same effect as more — the threshold is low</string>
+    <string name="action_running_caveat">HR 0.70 is slightly outside the formula\'s range. And those who run are those who can: the ill do not run, and die more often</string>
+    <string name="action_running_keywords" translatable="false">бег пробежка кросс run jogging</string>
+    <!-- fish -->
+    <string name="action_fish_label">Fish, one serving</string>
+    <string name="action_fish_exposure">A serving of fish in place of red meat</string>
+    <string name="action_fish_basis">Replacing red meat with fish is linked to lower mortality across all the large cohorts. A modest positive figure was taken</string>
+    <string name="action_fish_caveat">The size was set by me to sit sensibly beside neighbouring rows, not taken from a study. The direction of the effect is widely accepted, the magnitude is not</string>
+    <string name="action_fish_keywords" translatable="false">рыба лосось селёдка морепродукты fish salmon seafood</string>
+    <!-- sugary_drink -->
+    <string name="action_sugary_drink_label">Sugary drink</string>
+    <string name="action_sugary_drink_exposure">Beyond two cans a week</string>
+    <string name="action_sugary_drink_basis">Sugary drinks are consistently linked to diabetes and mortality. The figure was set slightly below a serving of red meat</string>
+    <string name="action_sugary_drink_caveat">The size was set by me to sit sensibly beside neighbouring rows, not taken from a study. The direction of the effect is widely accepted, the magnitude is not</string>
+    <string name="action_sugary_drink_keywords" translatable="false">газировка кола сок сахар лимонад soda sugary</string>
+    <!-- sweets -->
+    <string name="action_sweets_label">Sweets</string>
+    <string name="action_sweets_exposure">Beyond one dessert a day</string>
+    <string name="action_sweets_basis">A small figure was taken: one dessert a day is background, not a risk factor</string>
+    <string name="action_sweets_caveat">The size was set by me to sit sensibly beside neighbouring rows, not taken from a study. The direction of the effect is widely accepted, the magnitude is not</string>
+    <string name="action_sweets_keywords" translatable="false">сладкое десерт шоколад печенье торт sweets dessert</string>
+    <!-- stress -->
+    <string name="action_stress_label">Heavy stress</string>
+    <string name="action_stress_exposure">A day of severe stress or conflict</string>
+    <string name="action_stress_basis">Chronic stress is linked to mortality through the heart and through behaviour. For a single day a small figure was taken</string>
+    <string name="action_stress_caveat">The size was set by me to sit sensibly beside neighbouring rows, not taken from a study. The direction of the effect is widely accepted, the magnitude is not. And a one-off stressful day must not be conflated with chronic stress: it is the second that does the damage</string>
+    <string name="action_stress_keywords" translatable="false">стресс нервы конфликт ссора аврал stress conflict</string>
+    <!-- reading -->
+    <string name="action_reading_label">Half an hour of reading</string>
+    <string name="action_reading_exposure">Half an hour of reading books</string>
+    <string name="action_reading_basis">There is a well-known Yale study on book readers, but the figure here was set by me to sit beside neighbouring rows</string>
+    <string name="action_reading_caveat">The size was set by me to sit sensibly beside neighbouring rows, not taken from a study. The direction of the effect is widely accepted, the magnitude is not. Books are read by the educated and well-off — the effect is almost certainly not from the reading itself</string>
+    <string name="action_reading_keywords" translatable="false">чтение книга читал reading book</string>
+    <!-- floss -->
+    <string name="action_floss_label">Flossed</string>
+    <string name="action_floss_exposure">Interdental cleaning for the day</string>
+    <string name="action_floss_basis">Gum disease is linked to cardiovascular mortality. A small figure was taken</string>
+    <string name="action_floss_caveat">The size was set by me to sit sensibly beside neighbouring rows, not taken from a study. The direction of the effect is widely accepted, the magnitude is not. Causation is even shakier here than usual: people who look after their teeth look after everything else too</string>
+    <string name="action_floss_keywords" translatable="false">нить флосс зубы гигиена floss teeth dental</string>
+    <!-- tea -->
+    <string name="action_tea_label">Tea</string>
+    <string name="action_tea_exposure">A cup of tea</string>
+    <string name="action_tea_basis">By analogy with coffee, but more cautiously: the evidence base is weaker. A third of the coffee figure was taken</string>
+    <string name="action_tea_caveat">The size was set by me to sit sensibly beside neighbouring rows, not taken from a study. The direction of the effect is widely accepted, the magnitude is not</string>
+    <string name="action_tea_keywords" translatable="false">чай зелёный чёрный tea green</string>
+    <!-- nap -->
+    <string name="action_nap_label">Daytime nap</string>
+    <string name="action_nap_exposure">A short sleep during the day</string>
+    <string name="action_nap_basis">A short nap is usually linked to benefit, a long one to harm. A token figure was taken</string>
+    <string name="action_nap_caveat">The size was set by me to sit sensibly beside neighbouring rows, not taken from a study. The direction of the effect is widely accepted, the magnitude is not. Long daytime sleep goes negative in the studies, and that is more a sign of illness than its cause</string>
+    <string name="action_nap_keywords" translatable="false">дремота сон днём подремал nap daytime</string>
+    <!-- flu_shot -->
+    <string name="action_flu_shot_label">Flu shot</string>
+    <string name="action_flu_shot_exposure">A seasonal vaccination</string>
+    <string name="action_flu_shot_basis">One of the few rows here backed by randomised trials rather than observation alone. But converting it into minutes of life for a healthy 30-year-old is my estimate</string>
+    <string name="action_flu_shot_caveat">The size was set by me to sit sensibly beside neighbouring rows, not taken from a study. The direction of the effect is widely accepted, the magnitude is not. The bulk of the benefit falls on the elderly and people with chronic illness</string>
+    <string name="action_flu_shot_keywords" translatable="false">прививка вакцина грипп укол flu vaccine shot</string>
 </resources>
