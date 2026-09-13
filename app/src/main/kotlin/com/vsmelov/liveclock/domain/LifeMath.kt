@@ -80,6 +80,29 @@ object LifeMath {
         formatYears(remainingYears(state, now, zone))
 
     /**
+     * Целых суток в остатке.
+     *
+     * Виджет показывает сутки отдельным числом, а Chronometer тикает только
+     * остатком внутри суток — см. [remainingWithinDay]. Chronometer умеет
+     * форматировать лишь «Ч:ММ:СС», поэтому 17310 суток он показал бы как
+     * 415440 часов.
+     */
+    fun remainingWholeDays(state: LifeState, now: Instant, zone: ZoneId): Long {
+        val left = remaining(state, now, zone)
+        return if (left.isNegative) 0 else left.toDays()
+    }
+
+    /**
+     * Остаток за вычетом целых суток — то, что тикает секундами на виджете.
+     * Всегда в диапазоне от нуля до суток.
+     */
+    fun remainingWithinDay(state: LifeState, now: Instant, zone: ZoneId): Duration {
+        val left = remaining(state, now, zone)
+        if (left.isNegative) return Duration.ZERO
+        return left.minusDays(left.toDays())
+    }
+
+    /**
      * Начало следующих календарных суток в зоне [zone] — база обратного
      * отсчёта Chronometer'а на виджете.
      *

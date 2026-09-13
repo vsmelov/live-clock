@@ -35,6 +35,17 @@ data class LifeState(
     fun eventsOn(date: LocalDate, zone: ZoneId): List<LifeEvent> =
         events.filter { it.at.atZone(zone).toLocalDate() == date }.reversed()
 
+    /**
+     * Сколько раз каждый тип попадал в лог. Нужен, чтобы предлагать
+     * закрепить то, чем реально пользуешься, а не то, что стоит первым.
+     */
+    fun usageCounts(): Map<EventType, Int> =
+        events.groupingBy { it.type }.eachCount()
+
+    /** Суммарная поправка за календарные сутки [date] в зоне [zone]. */
+    fun deltaOn(date: LocalDate, zone: ZoneId): Int =
+        events.filter { it.at.atZone(zone).toLocalDate() == date }.sumOf { it.deltaMinutes }
+
     /** События, записанные строго после [after] — то, что ещё не ушло в синк. */
     fun eventsAfter(after: Instant?): List<LifeEvent> =
         if (after == null) events else events.filter { it.at.isAfter(after) }
