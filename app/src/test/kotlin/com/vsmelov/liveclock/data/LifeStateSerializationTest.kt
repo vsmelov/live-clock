@@ -9,6 +9,12 @@ import org.junit.Test
 import java.time.Instant
 import java.time.LocalDate
 
+/**
+ * Имена тестов латиницей намеренно: из backtick-имени собирается имя .class
+ * для лямбд внутри теста, и кириллица в пути ломает сборку под не-UTF-8
+ * локалью (POSIX на CI — падает даже clean). Комментарии и сообщения
+ * ассертов при этом остаются русскими.
+ */
 class LifeStateSerializationTest {
 
     private fun sample(): LifeState = LifeState(
@@ -21,7 +27,7 @@ class LifeStateSerializationTest {
     )
 
     @Test
-    fun `состояние переживает круг сериализации без потерь`() {
+    fun `state survives a serialization round trip`() {
         val original = sample()
 
         val json = LifeClockJson.encodeToString(original.toDto())
@@ -31,7 +37,7 @@ class LifeStateSerializationTest {
     }
 
     @Test
-    fun `события сериализуются по стабильному id, а не по имени enum`() {
+    fun `events serialize by stable id rather than enum name`() {
         val json = LifeClockJson.encodeToString(sample().toDto())
 
         assertTrue(json, json.contains("\"type\":\"smoke\""))
@@ -40,7 +46,7 @@ class LifeStateSerializationTest {
     }
 
     @Test
-    fun `неизвестный тип события пропускается, а остальное читается`() {
+    fun `an unknown event type is skipped and the rest is read`() {
         val json = """
             {
               "schema_version": 1,
@@ -61,7 +67,7 @@ class LifeStateSerializationTest {
     }
 
     @Test
-    fun `лишние поля из будущей схемы не ломают чтение`() {
+    fun `unknown fields from a future schema do not break reading`() {
         val json = """
             {
               "schema_version": 99,
@@ -79,7 +85,7 @@ class LifeStateSerializationTest {
     }
 
     @Test
-    fun `события восстанавливаются отсортированными даже из перемешанного json`() {
+    fun `events are restored sorted even from shuffled json`() {
         val json = """
             {
               "birth_date": "1994-02-04",
@@ -100,7 +106,7 @@ class LifeStateSerializationTest {
     }
 
     @Test
-    fun `историческая дельта сохраняется, а не пересчитывается по текущему коэффициенту`() {
+    fun `a historical delta is preserved rather than recomputed`() {
         val historical = LifeState().plusEvent(
             LifeEvent(EventType.SMOKE, Instant.ofEpochSecond(1_757_000_000), deltaMinutes = -60),
         )

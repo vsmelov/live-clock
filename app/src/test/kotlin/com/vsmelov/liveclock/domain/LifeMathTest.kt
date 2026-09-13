@@ -10,6 +10,12 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.Locale
 
+/**
+ * Имена тестов латиницей намеренно: из backtick-имени собирается имя .class
+ * для лямбд внутри теста, и кириллица в пути ломает сборку под не-UTF-8
+ * локалью (POSIX на CI — падает даже clean). Комментарии и сообщения
+ * ассертов при этом остаются русскими.
+ */
 class LifeMathTest {
 
     private val zone: ZoneId = ZoneId.of("Europe/Moscow")
@@ -18,7 +24,7 @@ class LifeMathTest {
         LocalDateTime.parse(text).atZone(zone).toInstant()
 
     @Test
-    fun `целая продолжительность даёт ровно годовщину рождения`() {
+    fun `whole expectancy lands exactly on the birthday anniversary`() {
         val state = LifeState(
             birthDate = LocalDate.of(1994, 2, 4),
             baseExpectancyYears = 80.0,
@@ -31,7 +37,7 @@ class LifeMathTest {
     }
 
     @Test
-    fun `дробная часть добавляется по средней длине года`() {
+    fun `fractional expectancy adds an average year length`() {
         val state = LifeState(baseExpectancyYears = 80.5)
 
         val whole = LifeMath.expectedDeathInstant(state.copy(baseExpectancyYears = 80.0), zone)
@@ -48,7 +54,7 @@ class LifeMathTest {
     }
 
     @Test
-    fun `отрицательная продолжительность поджимается к нулю`() {
+    fun `negative expectancy is clamped to zero`() {
         val birth = LocalDate.of(1994, 2, 4)
         val state = LifeState(birthDate = birth, baseExpectancyYears = -10.0)
 
@@ -59,7 +65,7 @@ class LifeMathTest {
     }
 
     @Test
-    fun `сигарета сдвигает ожидаемый момент на пятнадцать минут назад`() {
+    fun `a cigarette moves the expected instant fifteen minutes earlier`() {
         val clean = LifeState()
         val smoked = clean.plusEvent(
             LifeEvent.now(EventType.SMOKE, instant("2026-09-13T12:00:00")),
@@ -73,7 +79,7 @@ class LifeMathTest {
     }
 
     @Test
-    fun `тренировка сдвигает ожидаемый момент на полчаса вперёд`() {
+    fun `a workout moves the expected instant half an hour later`() {
         val clean = LifeState()
         val trained = clean.plusEvent(
             LifeEvent.now(EventType.WORKOUT, instant("2026-09-13T12:00:00")),
@@ -87,7 +93,7 @@ class LifeMathTest {
     }
 
     @Test
-    fun `разнонаправленные события гасят друг друга`() {
+    fun `opposite events cancel each other out`() {
         val at = instant("2026-09-13T12:00:00")
         val clean = LifeState()
         val mixed = clean
@@ -102,7 +108,7 @@ class LifeMathTest {
     }
 
     @Test
-    fun `остаток равен расстоянию до ожидаемого момента`() {
+    fun `remaining equals the distance to the expected instant`() {
         val state = LifeState(birthDate = LocalDate.of(1994, 2, 4), baseExpectancyYears = 80.0)
         val now = instant("2026-09-13T00:00:00")
 
@@ -116,7 +122,7 @@ class LifeMathTest {
     }
 
     @Test
-    fun `остаток в годах правдоподобен для дефолтного состояния`() {
+    fun `remaining years is plausible for the default state`() {
         val state = LifeState()
         val now = instant("2026-09-13T00:00:00")
 
@@ -127,7 +133,7 @@ class LifeMathTest {
     }
 
     @Test
-    fun `просроченный остаток отрицателен, а не обнуляется`() {
+    fun `overdue remaining stays negative instead of clamping to zero`() {
         val state = LifeState(birthDate = LocalDate.of(1900, 1, 1), baseExpectancyYears = 80.0)
         val now = instant("2026-09-13T00:00:00")
 
@@ -136,7 +142,7 @@ class LifeMathTest {
     }
 
     @Test
-    fun `формат остатка — четыре знака после точки`() {
+    fun `remaining is formatted with four decimal places`() {
         assertEquals("51.2847", LifeMath.formatYears(51.28474))
         assertEquals("51.2847", LifeMath.formatYears(51.284749))
         assertEquals("0.0000", LifeMath.formatYears(0.0))
@@ -144,7 +150,7 @@ class LifeMathTest {
     }
 
     @Test
-    fun `формат не зависит от локали по умолчанию`() {
+    fun `formatting ignores the default locale`() {
         val previous = Locale.getDefault()
         try {
             Locale.setDefault(Locale.forLanguageTag("ru-RU"))
@@ -155,7 +161,7 @@ class LifeMathTest {
     }
 
     @Test
-    fun `начало следующих суток — ближайшая локальная полночь`() {
+    fun `start of next day is the next local midnight`() {
         assertEquals(
             instant("2026-09-14T00:00:00"),
             LifeMath.startOfNextDay(instant("2026-09-13T21:11:00"), zone),
@@ -167,7 +173,7 @@ class LifeMathTest {
     }
 
     @Test
-    fun `микрожизнь равна получасу`() {
+    fun `one microlife is half an hour`() {
         assertEquals(30, Coefficients.MICROLIFE_MINUTES)
         assertEquals(-0.5, EventType.SMOKE.microlives, 1e-9)
         assertEquals(1.0, EventType.WORKOUT.microlives, 1e-9)
