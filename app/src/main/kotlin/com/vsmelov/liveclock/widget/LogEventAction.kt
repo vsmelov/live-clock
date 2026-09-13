@@ -8,6 +8,7 @@ import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.updateAll
 import com.vsmelov.liveclock.data.LifeRepository
 import com.vsmelov.liveclock.domain.EventType
+import com.vsmelov.liveclock.work.SyncWorker
 import java.time.Instant
 
 private const val TAG = "LogEventAction"
@@ -36,6 +37,8 @@ class LogEventAction : ActionCallback {
 
         LifeRepository.from(context).addEvent(type, Instant.now())
         LifeClockWidget().updateAll(context)
+        // Сеть — не здесь. Воркер разберётся сам и переживёт отсутствие связи.
+        SyncWorker.enqueue(context)
     }
 
     companion object {
