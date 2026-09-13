@@ -55,9 +55,24 @@ class EventTypeTest {
     }
 
     @Test
-    fun `no type has a zero delta`() {
+    fun `a zero delta is allowed only where the effect was checked and not found`() {
+        // Ноль — это результат проверки, а не забытая величина. Кнопка с нулём
+        // существует затем, чтобы было видно: смотрели и не нашли.
         EventType.entries.forEach { type ->
-            assertTrue("нулевой коэффициент у $type", type.deltaMinutes != 0)
+            if (type.deltaMinutes == 0) {
+                assertEquals(
+                    "нулевой коэффициент у $type без пометки «эффекта нет»",
+                    Confidence.NONE,
+                    type.evidence.confidence,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `isNeutral agrees with a zero delta`() {
+        EventType.entries.forEach { type ->
+            assertEquals("$type", type.deltaMinutes == 0, type.isNeutral)
         }
     }
 
