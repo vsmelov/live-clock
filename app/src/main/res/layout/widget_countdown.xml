@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Chronometer внутри Glance через AndroidRemoteViews.
+
+  Это единственный способ показывать секунды на виджете: Chronometer тикает
+  средствами самого лаунчера, без пробуждения нашего процесса. Обновлять
+  виджет раз в секунду система всё равно не даст.
+-->
+<Chronometer xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/countdown"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:gravity="center"
+    android:includeFontPadding="false"
+    android:maxLines="1"
+    android:textColor="@color/widget_text_secondary"
+    android:textSize="14sp" />

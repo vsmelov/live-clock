@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Live Clock</string>
+    <string name="widget_description">Остаток жизни и кнопки быстрых действий</string>
+
+    <string name="years_suffix">лет</string>
 </resources>

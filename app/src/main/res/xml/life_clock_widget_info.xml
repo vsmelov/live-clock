@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  updatePeriodMillis = 30 минут. Это нижняя граница, которую даёт система:
+  значения меньше она молча округляет вверх. Крупное число живёт по этому
+  расписанию (плюс периодический воркер на 15 минут), секунды — на Chronometer.
+
+  Размеры: цель 4x2, но виджет обязан выживать вплоть до 2x2, поэтому
+  minResize* опущены до 110dp — это примерно две ячейки.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_description"
+    android:initialLayout="@layout/glance_default_loading_layout"
+    android:minHeight="110dp"
+    android:minResizeHeight="110dp"
+    android:minResizeWidth="110dp"
+    android:minWidth="110dp"
+    android:previewLayout="@layout/glance_default_loading_layout"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellHeight="2"
+    android:targetCellWidth="4"
+    android:updatePeriodMillis="1800000"
+    android:widgetCategory="home_screen" />

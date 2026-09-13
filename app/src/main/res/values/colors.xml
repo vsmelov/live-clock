@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Светлая тема. Ночные варианты — в values-night/colors.xml.
+     RemoteViews резолвят ресурсы по конфигурации лаунчера, поэтому
+     виджет сам переключается вслед за системной темой. -->
+<resources>
+    <color name="widget_background">#F4F3F7</color>
+    <color name="widget_text_primary">#1B1B1F</color>
+    <color name="widget_text_secondary">#5A5A66</color>
+
+    <color name="widget_button_cost_background">#F9DEDC</color>
+    <color name="widget_button_cost_text">#8C1D18</color>
+    <color name="widget_button_gain_background">#DDF0D5</color>
+    <color name="widget_button_gain_text">#1F5026</color>
+</resources>

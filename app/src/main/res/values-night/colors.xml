@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="widget_background">#1B1B1F</color>
+    <color name="widget_text_primary">#E5E1E6</color>
+    <color name="widget_text_secondary">#A8A5AE</color>
+
+    <color name="widget_button_cost_background">#5C1B18</color>
+    <color name="widget_button_cost_text">#F2B8B5</color>
+    <color name="widget_button_gain_background">#24432A</color>
+    <color name="widget_button_gain_text">#B7E0B9</color>
+</resources>
