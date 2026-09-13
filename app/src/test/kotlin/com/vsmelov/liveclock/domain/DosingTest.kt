@@ -1,11 +1,7 @@
 package com.vsmelov.liveclock.domain
 
-/**
- * Имена тестов латиницей намеренно: из backtick-имени собирается имя .class
- * для лямбд внутри теста, и кириллица в пути ломает сборку под не-UTF-8
- * локалью (POSIX на CI — падает даже clean).
- */
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
@@ -19,23 +15,20 @@ class DosingTest {
     private fun at(text: String): Instant =
         LocalDateTime.parse(text).atZone(zone).toInstant()
 
-    /** Записывает [times] событий подряд, считая цену каждого по текущему логу. */
+    /** Records events in order, pricing each one against the log as it stands. */
     private fun log(state: LifeState, type: EventType, vararg moments: String): LifeState =
         moments.fold(state) { acc, moment ->
             val instant = at(moment)
-            acc.plusEvent(
-                LifeEvent(type, instant, deltaMinutes = acc.deltaFor(type, instant, zone)),
-            )
+            acc.plusEvent(LifeEvent(type, instant, deltaMinutes = acc.deltaFor(type, instant, zone)))
         }
 
     @Test
-    fun `meat within the weekly norm is free and only the excess is charged`() {
+    fun `meat within the weekly allowance is free and only the excess is charged`() {
         var state = LifeState()
-        // норма — три порции в неделю
         state = log(state, EventType.RED_MEAT,
             "2026-09-14T12:00:00", "2026-09-16T12:00:00", "2026-09-18T12:00:00")
 
-        assertEquals("три порции за неделю не должны стоить ничего", 0, state.totalDeltaMinutes)
+        assertEquals("three servings a week should cost nothing", 0, state.totalDeltaMinutes)
 
         state = log(state, EventType.RED_MEAT, "2026-09-19T12:00:00")
         assertEquals(Coefficients.RED_MEAT, state.totalDeltaMinutes)
@@ -43,8 +36,8 @@ class DosingTest {
 
     @Test
     fun `eating meat every few days is never charged`() {
-        // Ровно сценарий «ем раз в несколько дней»: две порции в неделю,
-        // месяц подряд. Ни одна не должна ничего стоить.
+        // Exactly the "I eat it every few days" case: two servings a week for a
+        // month. Not one of them should cost anything.
         var state = LifeState()
         listOf(
             "2026-09-14T12:00:00", "2026-09-17T12:00:00",
@@ -57,25 +50,23 @@ class DosingTest {
     }
 
     @Test
-    fun `the weekly norm resets on monday`() {
+    fun `the weekly allowance resets on monday`() {
         var state = LifeState()
-        // воскресенье — норма выбрана
         state = log(state, EventType.RED_MEAT,
             "2026-09-14T12:00:00", "2026-09-15T12:00:00", "2026-09-20T23:00:00")
         assertEquals(0, state.remainingInNorm(EventType.RED_MEAT, at("2026-09-20T23:30:00"), zone))
 
-        // понедельник — снова полная норма
         assertEquals(3, state.remainingInNorm(EventType.RED_MEAT, at("2026-09-21T00:30:00"), zone))
         assertEquals(0, state.deltaFor(EventType.RED_MEAT, at("2026-09-21T00:30:00"), zone))
     }
 
     @Test
     fun `the first drink of the day helps and the next ones hurt`() {
-        // Ровно то, что написано в источнике: первая доза за день в плюс,
-        // последующие в минус.
+        // Exactly what the source says: the first drink of the day goes up, the
+        // following ones go down.
         var state = LifeState()
         state = log(state, EventType.DRINK, "2026-09-14T20:00:00")
-        assertTrue("первая доза за день должна быть в плюс", state.totalDeltaMinutes > 0)
+        assertTrue("the first drink of the day should be positive", state.totalDeltaMinutes > 0)
 
         val afterFirst = state.totalDeltaMinutes
         state = log(state, EventType.DRINK, "2026-09-14T21:00:00")
@@ -83,7 +74,7 @@ class DosingTest {
     }
 
     @Test
-    fun `the daily norm resets the next morning`() {
+    fun `the daily allowance resets the next morning`() {
         var state = LifeState()
         state = log(state, EventType.DRINK, "2026-09-14T23:00:00")
         assertEquals(0, state.remainingInNorm(EventType.DRINK, at("2026-09-14T23:30:00"), zone))
@@ -91,23 +82,22 @@ class DosingTest {
     }
 
     @Test
-    fun `a benefit stops growing past its norm instead of going negative`() {
+    fun `a benefit stops growing past its allowance instead of going negative`() {
         var state = LifeState()
-        // кофе: три чашки в день дают плюс, четвёртая — уже ноль, но не минус
         listOf("2026-09-14T08:00:00", "2026-09-14T11:00:00", "2026-09-14T13:00:00")
             .forEach { moment -> state = log(state, EventType.COFFEE, moment) }
         val afterThree = state.totalDeltaMinutes
         assertEquals(3 * Coefficients.COFFEE, afterThree)
 
         state = log(state, EventType.COFFEE, "2026-09-14T15:00:00")
-        assertEquals("четвёртая чашка не должна ни давать, ни отнимать", afterThree, state.totalDeltaMinutes)
+        assertEquals("a fourth cup should neither give nor take", afterThree, state.totalDeltaMinutes)
     }
 
     @Test
-    fun `types without a norm always cost the same`() {
-        val withoutNorm = EventType.entries.filter { it.dosing == null }
-        assertTrue(withoutNorm.isNotEmpty())
-        withoutNorm.forEach { type ->
+    fun `types without an allowance always cost the same`() {
+        val withoutAllowance = EventType.entries.filter { it.dosing == null }
+        assertTrue(withoutAllowance.isNotEmpty())
+        withoutAllowance.forEach { type ->
             var state = LifeState()
             listOf(
                 "2026-09-14T10:00:00", "2026-09-14T11:00:00", "2026-09-14T12:00:00",
@@ -119,17 +109,17 @@ class DosingTest {
 
     @Test
     fun `smoking has no free allowance`() {
-        // Безопасной дозы у сигарет нет, и норма тут была бы враньём.
-        assertEquals(null, EventType.SMOKE.dosing)
+        // There is no safe dose of cigarettes, and an allowance would be a lie.
+        assertNull(EventType.SMOKE.dosing)
     }
 
     @Test
-    fun `the headline value always matches one side of the norm`() {
-        // Иначе на кнопке была бы цифра, которой не бывает ни при каких условиях.
+    fun `the headline value always matches one side of the allowance`() {
+        // Otherwise a button would show a figure that never actually applies.
         EventType.entries.mapNotNull { type -> type.dosing?.let { type to it } }
             .forEach { (type, dosing) ->
                 assertTrue(
-                    "$type: номинал ${type.deltaMinutes} не совпадает ни с одной стороной нормы",
+                    "$type: headline ${type.deltaMinutes} matches neither side",
                     type.deltaMinutes == dosing.withinNormalMinutes ||
                         type.deltaMinutes == dosing.beyondNormalMinutes,
                 )
@@ -143,12 +133,11 @@ class DosingTest {
             "2026-09-14T12:00:00", "2026-09-15T12:00:00",
             "2026-09-16T12:00:00", "2026-09-17T12:00:00")
 
-        val prices = state.events.map { it.deltaMinutes }
-        assertEquals(listOf(0, 0, 0, Coefficients.RED_MEAT), prices)
+        assertEquals(listOf(0, 0, 0, Coefficients.RED_MEAT), state.events.map { it.deltaMinutes })
     }
 
     @Test
-    fun `a negative norm is rejected`() {
+    fun `a negative allowance is rejected`() {
         val error = runCatching {
             Dosing(DosingPeriod.DAY, normal = -1, withinNormalMinutes = 0, beyondNormalMinutes = -30)
         }.exceptionOrNull()
@@ -164,7 +153,14 @@ class DosingTest {
 
         assertTrue(DosingPeriod.DAY.isSamePeriod(monday, sameDayLater, zone))
         assertTrue(!DosingPeriod.DAY.isSamePeriod(monday, sunday, zone))
-        assertTrue("воскресенье — та же ISO-неделя", DosingPeriod.WEEK.isSamePeriod(monday, sunday, zone))
+        assertTrue("sunday is the same ISO week", DosingPeriod.WEEK.isSamePeriod(monday, sunday, zone))
         assertTrue(!DosingPeriod.WEEK.isSamePeriod(monday, nextMonday, zone))
+    }
+
+    @Test
+    fun `every period has a label resource`() {
+        DosingPeriod.entries.forEach { period ->
+            assertTrue("$period has no label", period.labelRes != 0)
+        }
     }
 }

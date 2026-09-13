@@ -11,11 +11,11 @@ import com.vsmelov.liveclock.widget.LifeClockWidget
 import java.util.concurrent.TimeUnit
 
 /**
- * Пересчитывает крупное число на виджете.
+ * Recomputes the large figure on the widget.
  *
- * Нужен потому, что updatePeriodMillis сам по себе ненадёжен в Doze:
- * система вправе придержать обновление. Воркер даёт второй, более
- * дружелюбный к батарее канал.
+ * Needed because updatePeriodMillis alone is unreliable under Doze: the system
+ * is free to hold an update back. The worker is a second, more battery-friendly
+ * channel.
  */
 class WidgetRefreshWorker(
     appContext: Context,
@@ -31,14 +31,14 @@ class WidgetRefreshWorker(
         private const val UNIQUE_NAME = "life-clock-widget-refresh"
 
         /**
-         * Пятнадцать минут — жёсткий минимум WorkManager
+         * Fifteen minutes is WorkManager's hard floor
          * ([androidx.work.PeriodicWorkRequest.MIN_PERIODIC_INTERVAL_MILLIS]).
-         * Просить чаще бессмысленно: система поднимет период до этого значения.
-         * Секунды на виджете идут не отсюда, а с Chronometer.
+         * Asking for more is pointless: the system raises the period to this
+         * anyway. The seconds on the widget come from the Chronometer, not here.
          */
         const val INTERVAL_MINUTES: Long = 15
 
-        /** Вызывается, когда на экране появляется первый виджет. */
+        /** Called when the first widget appears on a home screen. */
         fun schedule(context: Context) {
             val request = PeriodicWorkRequestBuilder<WidgetRefreshWorker>(
                 INTERVAL_MINUTES,
@@ -52,7 +52,7 @@ class WidgetRefreshWorker(
             )
         }
 
-        /** Вызывается, когда убран последний виджет — будить процесс больше незачем. */
+        /** Called when the last widget is removed — nothing left to wake up for. */
         fun cancel(context: Context) {
             WorkManager.getInstance(context).cancelUniqueWork(UNIQUE_NAME)
         }

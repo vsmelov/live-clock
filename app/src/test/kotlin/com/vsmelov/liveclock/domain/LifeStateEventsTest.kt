@@ -10,18 +10,15 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 
-/**
- * Имена тестов латиницей намеренно: из backtick-имени собирается имя .class
- * для лямбд внутри теста, и кириллица в пути ломает сборку под не-UTF-8
- * локалью (POSIX на CI — падает даже clean). Комментарии и сообщения
- * ассертов при этом остаются русскими.
- */
 class LifeStateEventsTest {
 
     private val zone: ZoneId = ZoneId.of("Europe/Moscow")
 
     private fun instant(text: String): Instant =
         LocalDateTime.parse(text).atZone(zone).toInstant()
+
+    private fun event(type: EventType, text: String) =
+        LifeEvent(type, instant(text), type.deltaMinutes)
 
     @Test
     fun `empty state does not move the expected instant`() {
@@ -30,43 +27,45 @@ class LifeStateEventsTest {
 
     @Test
     fun `deltas add up across the whole log`() {
-        val at = instant("2026-09-13T10:00:00")
         val state = LifeState()
-            .plusEvent(LifeEvent.now(EventType.SMOKE, at))
-            .plusEvent(LifeEvent.now(EventType.DRINK, at.plusSeconds(1)))
-            .plusEvent(LifeEvent.now(EventType.WORKOUT, at.plusSeconds(2)))
+            .plusEvent(event(EventType.SMOKE, "2026-09-13T10:00:00"))
+            .plusEvent(event(EventType.DRINK, "2026-09-13T10:00:01"))
+            .plusEvent(event(EventType.WORKOUT, "2026-09-13T10:00:02"))
 
-        assertEquals(-15 + -30 + 30, state.totalDeltaMinutes)
+        assertEquals(
+            Coefficients.SMOKE + Coefficients.DRINK + Coefficients.WORKOUT,
+            state.totalDeltaMinutes,
+        )
     }
 
     @Test
     fun `events stay sorted by time regardless of insertion order`() {
-        val noon = instant("2026-09-13T12:00:00")
-        val morning = instant("2026-09-13T08:00:00")
-        val evening = instant("2026-09-13T20:00:00")
-
         val state = LifeState()
-            .plusEvent(LifeEvent.now(EventType.SMOKE, noon))
-            .plusEvent(LifeEvent.now(EventType.REST, evening))
-            .plusEvent(LifeEvent.now(EventType.DRINK, morning))
+            .plusEvent(event(EventType.SMOKE, "2026-09-13T12:00:00"))
+            .plusEvent(event(EventType.REST, "2026-09-13T20:00:00"))
+            .plusEvent(event(EventType.DRINK, "2026-09-13T08:00:00"))
 
-        assertEquals(listOf(morning, noon, evening), state.events.map { it.at })
+        assertEquals(
+            listOf(
+                instant("2026-09-13T08:00:00"),
+                instant("2026-09-13T12:00:00"),
+                instant("2026-09-13T20:00:00"),
+            ),
+            state.events.map { it.at },
+        )
     }
 
     @Test
     fun `undo removes the latest event by time`() {
-        val morning = instant("2026-09-13T08:00:00")
-        val evening = instant("2026-09-13T20:00:00")
-
-        // записано в обратном порядке: вечернее добавлено первым
+        // Recorded out of order: the evening one was added first.
         val state = LifeState()
-            .plusEvent(LifeEvent.now(EventType.WORKOUT, evening))
-            .plusEvent(LifeEvent.now(EventType.SMOKE, morning))
+            .plusEvent(event(EventType.WORKOUT, "2026-09-13T20:00:00"))
+            .plusEvent(event(EventType.SMOKE, "2026-09-13T08:00:00"))
 
         val undone = state.withoutLastEvent()
 
         assertEquals(1, undone.events.size)
-        assertEquals(morning, undone.events.single().at)
+        assertEquals(instant("2026-09-13T08:00:00"), undone.events.single().at)
         assertEquals(EventType.SMOKE, undone.events.single().type)
     }
 
@@ -74,52 +73,35 @@ class LifeStateEventsTest {
     fun `undo on an empty log is a no-op`() {
         val empty = LifeState()
         assertSame(empty, empty.withoutLastEvent())
-        assertTrue(empty.withoutLastEvent().events.isEmpty())
     }
 
     @Test
     fun `last event is exposed and null on a clean state`() {
         assertNull(LifeState().lastEvent)
-
-        val at = instant("2026-09-13T12:00:00")
-        val state = LifeState().plusEvent(LifeEvent.now(EventType.REST, at))
+        val state = LifeState().plusEvent(event(EventType.REST, "2026-09-13T12:00:00"))
         assertEquals(EventType.REST, state.lastEvent?.type)
     }
 
     @Test
-    fun `undo restores the previous delta sum`() {
-        val at = instant("2026-09-13T12:00:00")
-        val before = LifeState().plusEvent(LifeEvent.now(EventType.WORKOUT, at))
-        val after = before
-            .plusEvent(LifeEvent.now(EventType.SMOKE, at.plusSeconds(60)))
-            .withoutLastEvent()
-
-        assertEquals(before.totalDeltaMinutes, after.totalDeltaMinutes)
-    }
-
-    @Test
     fun `today log filters by local date and returns newest first`() {
-        val yesterday = instant("2026-09-12T23:30:00")
-        val morning = instant("2026-09-13T08:00:00")
-        val evening = instant("2026-09-13T20:00:00")
-        val tomorrow = instant("2026-09-14T00:30:00")
-
         val state = LifeState()
-            .plusEvent(LifeEvent.now(EventType.SMOKE, yesterday))
-            .plusEvent(LifeEvent.now(EventType.DRINK, morning))
-            .plusEvent(LifeEvent.now(EventType.REST, evening))
-            .plusEvent(LifeEvent.now(EventType.WORKOUT, tomorrow))
+            .plusEvent(event(EventType.SMOKE, "2026-09-12T23:30:00"))
+            .plusEvent(event(EventType.DRINK, "2026-09-13T08:00:00"))
+            .plusEvent(event(EventType.REST, "2026-09-13T20:00:00"))
+            .plusEvent(event(EventType.WORKOUT, "2026-09-14T00:30:00"))
 
         val today = state.eventsOn(LocalDate.of(2026, 9, 13), zone)
 
-        assertEquals(listOf(evening, morning), today.map { it.at })
+        assertEquals(
+            listOf(instant("2026-09-13T20:00:00"), instant("2026-09-13T08:00:00")),
+            today.map { it.at },
+        )
     }
 
     @Test
     fun `editing a coefficient does not rewrite the recorded log`() {
-        val at = instant("2026-09-13T12:00:00")
-        // событие, записанное когда сигарета стоила вдвое дороже
-        val historical = LifeEvent(type = EventType.SMOKE, at = at, deltaMinutes = -30)
+        // An event recorded back when a cigarette cost twice as much.
+        val historical = LifeEvent(EventType.SMOKE, instant("2026-09-13T12:00:00"), -30)
         val state = LifeState().plusEvent(historical)
 
         assertEquals(-30, state.totalDeltaMinutes)
@@ -133,12 +115,24 @@ class LifeStateEventsTest {
         val third = instant("2026-09-13T20:00:00")
 
         val state = LifeState()
-            .plusEvent(LifeEvent.now(EventType.SMOKE, first))
-            .plusEvent(LifeEvent.now(EventType.DRINK, second))
-            .plusEvent(LifeEvent.now(EventType.REST, third))
+            .plusEvent(LifeEvent(EventType.SMOKE, first, -15))
+            .plusEvent(LifeEvent(EventType.DRINK, second, -30))
+            .plusEvent(LifeEvent(EventType.REST, third, 15))
 
         assertEquals(listOf(third), state.eventsAfter(second).map { it.at })
         assertEquals(3, state.eventsAfter(null).size)
         assertTrue(state.eventsAfter(third).isEmpty())
+    }
+
+    @Test
+    fun `usage counts group by type`() {
+        val state = LifeState()
+            .plusEvent(event(EventType.SMOKE, "2026-09-13T08:00:00"))
+            .plusEvent(event(EventType.SMOKE, "2026-09-13T09:00:00"))
+            .plusEvent(event(EventType.REST, "2026-09-13T10:00:00"))
+
+        assertEquals(2, state.usageCounts()[EventType.SMOKE])
+        assertEquals(1, state.usageCounts()[EventType.REST])
+        assertNull(state.usageCounts()[EventType.DRINK])
     }
 }

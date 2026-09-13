@@ -7,15 +7,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Тесты на расширяемость: они не перечисляют типы руками, а проходят по
- * [EventType.entries], поэтому продолжат защищать инвариант после того,
- * как в enum добавятся новые записи.
- */
-/**
- * Имена тестов латиницей намеренно: из backtick-имени собирается имя .class
- * для лямбд внутри теста, и кириллица в пути ломает сборку под не-UTF-8
- * локалью (POSIX на CI — падает даже clean). Комментарии и сообщения
- * ассертов при этом остаются русскими.
+ * Extensibility tests: they walk [EventType.entries] rather than listing types by
+ * hand, so they keep guarding the invariants after new entries are added.
  */
 class EventTypeTest {
 
@@ -28,16 +21,17 @@ class EventTypeTest {
     @Test
     fun `ids are non blank and trimmed`() {
         EventType.entries.forEach { type ->
-            assertTrue("пустой id у $type", type.id.isNotBlank())
-            assertEquals("id с пробелами у $type", type.id.trim(), type.id)
+            assertTrue("blank id on $type", type.id.isNotBlank())
+            assertEquals("id with whitespace on $type", type.id.trim(), type.id)
         }
     }
 
     @Test
-    fun `every type has a label and an emoji`() {
+    fun `every type has a label resource, keywords and an emoji`() {
         EventType.entries.forEach { type ->
-            assertTrue("нет подписи у $type", type.label.isNotBlank())
-            assertTrue("нет эмодзи у $type", type.emoji.isNotBlank())
+            assertTrue("no label resource on $type", type.labelRes != 0)
+            assertTrue("no keywords resource on $type", type.keywordsRes != 0)
+            assertTrue("no emoji on $type", type.emoji.isNotBlank())
         }
     }
 
@@ -50,18 +44,18 @@ class EventTypeTest {
 
     @Test
     fun `an unknown id does not break parsing`() {
-        assertNull(EventType.fromId("такого-типа-нет"))
+        assertNull(EventType.fromId("no-such-type"))
         assertNull(EventType.fromId(""))
     }
 
     @Test
     fun `a zero delta is allowed only where the effect was checked and not found`() {
-        // Ноль — это результат проверки, а не забытая величина. Кнопка с нулём
-        // существует затем, чтобы было видно: смотрели и не нашли.
+        // Zero is the result of checking, not a forgotten value. A zero button
+        // exists so that it is visible somebody looked and found nothing.
         EventType.entries.forEach { type ->
             if (type.deltaMinutes == 0) {
                 assertEquals(
-                    "нулевой коэффициент у $type без пометки «эффекта нет»",
+                    "zero delta on $type without a «no effect» marker",
                     Confidence.NONE,
                     type.evidence.confidence,
                 )
@@ -82,6 +76,8 @@ class EventTypeTest {
         assertEquals(Coefficients.DRINK, EventType.DRINK.deltaMinutes)
         assertEquals(Coefficients.REST, EventType.REST.deltaMinutes)
         assertEquals(Coefficients.WORKOUT, EventType.WORKOUT.deltaMinutes)
+        assertEquals(Coefficients.SLEEP_SHORT, EventType.SLEEP_SHORT.deltaMinutes)
+        assertEquals(Coefficients.SOCIAL, EventType.SOCIAL.deltaMinutes)
     }
 
     @Test
@@ -93,76 +89,54 @@ class EventTypeTest {
 
     @Test
     fun `widget button types exist`() {
-        // Виджет жёстко показывает эти два типа, они не должны пропасть из enum.
+        // The widget defaults hard-code these two; they must not vanish.
         assertNotNull(EventType.fromId("smoke"))
         assertNotNull(EventType.fromId("rest"))
+        assertTrue(EventType.DEFAULT_PINNED.isNotEmpty())
+        assertEquals(EventType.DEFAULT_PINNED.size, EventType.DEFAULT_PINNED.toSet().size)
     }
 }
 
-/** Поиск по действиям — то, что вводится в строку над списком. */
-class EventTypeSearchTest {
+/** The action search box. Keywords are supplied explicitly so this stays pure. */
+class ActionSearchTest {
+
+    private fun matches(query: String, label: String = "Smoked", keywords: String = "") =
+        ActionSearch.matches(query, id = "smoke", label = label, keywords = keywords)
 
     @Test
-    fun `empty query matches everything`() {
-        EventType.entries.forEach { type ->
-            assertTrue("$type", type.matches(""))
-            assertTrue("$type", type.matches("   "))
-        }
+    fun `an empty query matches everything`() {
+        assertTrue(matches(""))
+        assertTrue(matches("   "))
     }
 
     @Test
     fun `search is case insensitive`() {
-        assertTrue(EventType.SMOKE.matches("покурил"))
-        assertTrue(EventType.SMOKE.matches("ПОКУРИЛ"))
-        assertTrue(EventType.SMOKE.matches("ПоКуРиЛ"))
-    }
-
-    @Test
-    fun `search finds a type by how it is called in the head`() {
-        assertTrue(EventType.SMOKE.matches("сижка"))
-        assertTrue(EventType.SMOKE.matches("сигарета"))
-        assertTrue(EventType.DRINK.matches("бухло"))
-        assertTrue(EventType.DRINK.matches("пиво"))
-        assertTrue(EventType.WORKOUT.matches("зал"))
-        assertTrue(EventType.WORKOUT.matches("качалка"))
-    }
-
-    @Test
-    fun `search works in english too`() {
-        assertTrue(EventType.SMOKE.matches("smoke"))
-        assertTrue(EventType.COFFEE.matches("coffee"))
-        assertTrue(EventType.WORKOUT.matches("gym"))
+        assertTrue(matches("smoked"))
+        assertTrue(matches("SMOKED"))
+        assertTrue(matches("SmOkEd"))
     }
 
     @Test
     fun `search finds a type by its stable id`() {
-        EventType.entries.forEach { type ->
-            assertTrue("$type не находится по своему id", type.matches(type.id))
-        }
+        assertTrue(matches("smoke", label = "Anything"))
     }
 
     @Test
-    fun `nonsense query matches nothing`() {
-        val query = "квазимодо"
-        assertTrue(EventType.entries.none { it.matches(query) })
+    fun `search runs across both languages at once`() {
+        // Keywords deliberately carry both languages, so a query in either one
+        // finds the action whatever the interface language is set to.
+        val keywords = "cigarette tobacco sigareta"
+        assertTrue(ActionSearch.matches("tobacco", "smoke", "Smoked", keywords))
+        assertTrue(ActionSearch.matches("sigareta", "smoke", "Smoked", keywords))
+    }
+
+    @Test
+    fun `a nonsense query matches nothing`() {
+        assertTrue(!matches("quasimodo", keywords = "cigarette tobacco"))
     }
 
     @Test
     fun `surrounding spaces do not break the search`() {
-        assertTrue(EventType.COFFEE.matches("  кофе  "))
-    }
-
-    @Test
-    fun `every type is reachable by typing its own label`() {
-        EventType.entries.forEach { type ->
-            val hits = EventType.entries.filter { it.matches(type.label) }
-            assertTrue("$type не находится по своей подписи", type in hits)
-        }
-    }
-
-    @Test
-    fun `default pinned types exist and are distinct`() {
-        assertTrue(EventType.DEFAULT_PINNED.isNotEmpty())
-        assertEquals(EventType.DEFAULT_PINNED.size, EventType.DEFAULT_PINNED.toSet().size)
+        assertTrue(matches("  smoked  "))
     }
 }

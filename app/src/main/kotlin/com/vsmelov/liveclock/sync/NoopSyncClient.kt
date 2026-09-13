@@ -3,10 +3,10 @@ package com.vsmelov.liveclock.sync
 import com.vsmelov.liveclock.domain.LifeEvent
 
 /**
- * Реализация по умолчанию: никуда не ходит и ничего не делает.
+ * The default implementation: goes nowhere and does nothing.
  *
- * Включена из коробки, потому что приложение должно быть полезным
- * без единой строчки настроек и без сети.
+ * Enabled out of the box, because the app has to be useful without a single line
+ * of configuration and without a network.
  */
 object NoopSyncClient : EventSyncClient {
 

@@ -3,20 +3,16 @@ package com.vsmelov.liveclock.domain
 import java.time.Instant
 
 /**
- * Одно записанное действие.
+ * One recorded action.
  *
- * [deltaMinutes] копируется из [EventType] в момент записи и дальше живёт
- * своей жизнью. Так правка [Coefficients] не переписывает прошлое: вчерашняя
- * сигарета остаётся стоившей столько, сколько стоила вчера.
+ * [deltaMinutes] is computed when the event is written and then lives its own
+ * life. That way editing [Coefficients] does not rewrite the past: yesterday's
+ * cigarette stays worth what it was worth yesterday. The same applies to an
+ * allowance — an event charged as excess stays charged even if earlier events
+ * are later undone.
  */
 data class LifeEvent(
     val type: EventType,
     val at: Instant,
     val deltaMinutes: Int = type.deltaMinutes,
-) {
-    companion object {
-        /** Событие «сейчас» с текущим коэффициентом типа. */
-        fun now(type: EventType, at: Instant): LifeEvent =
-            LifeEvent(type = type, at = at, deltaMinutes = type.deltaMinutes)
-    }
-}
+)

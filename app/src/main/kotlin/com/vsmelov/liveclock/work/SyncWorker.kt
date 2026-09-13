@@ -19,11 +19,11 @@ import java.util.concurrent.TimeUnit
 private const val TAG = "SyncWorker"
 
 /**
- * Выгружает наружу события, которых сервер ещё не видел.
+ * Uploads the events a server has not seen yet.
  *
- * Сюда вынесено всё, чего не должно быть в ActionCallback: сеть, ожидание
- * и повторы. Неуспех не теряет данные — лог остаётся в DataStore, а воркер
- * повторит попытку позже.
+ * Everything that must not live in an ActionCallback goes here: the network, the
+ * waiting and the retries. A failure loses nothing — the log stays in the
+ * DataStore and the worker tries again later.
  */
 class SyncWorker(
     appContext: Context,
@@ -34,7 +34,7 @@ class SyncWorker(
         val repository = LifeRepository.from(applicationContext)
         val settings = repository.currentSyncSettings()
 
-        // Синк выключен или не настроен — это норма, а не ошибка.
+        // Sync is off or unconfigured. That is normal, not an error.
         if (!settings.isUsable) return Result.success()
 
         val pending = repository.currentState().eventsAfter(settings.lastSyncedAt)
@@ -42,11 +42,11 @@ class SyncWorker(
 
         return try {
             SyncClientProvider.forSettings(settings).push(pending)
-            // События отсортированы, поэтому последнее — самое позднее.
+            // Events are sorted, so the last one is the latest.
             repository.markSyncedUpTo(pending.last().at)
             Result.success()
         } catch (error: IOException) {
-            Log.w(TAG, "Синк не удался, попытка $runAttemptCount", error)
+            Log.w(TAG, "Sync failed, attempt $runAttemptCount", error)
             if (runAttemptCount >= MAX_ATTEMPTS) Result.failure() else Result.retry()
         }
     }
@@ -55,11 +55,11 @@ class SyncWorker(
         private const val UNIQUE_NAME = "life-clock-sync"
         private const val MAX_ATTEMPTS = 5
 
-        /**
-         * Ставит разовую выгрузку в очередь.
+         /**
+         * Queues a one-off upload.
          *
-         * REPLACE, а не APPEND: каждый запуск отправляет весь несинхронизированный
-         * хвост, поэтому серия быстрых нажатий должна схлопнуться в одну отправку.
+         * REPLACE rather than APPEND: every run sends the whole unsynced tail, so
+         * a burst of quick taps should collapse into a single upload.
          */
         fun enqueue(context: Context) {
             val request = OneTimeWorkRequestBuilder<SyncWorker>()

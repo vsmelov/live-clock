@@ -1,10 +1,5 @@
 package com.vsmelov.liveclock.domain
 
-/**
- * Имена тестов латиницей намеренно: из backtick-имени собирается имя .class
- * для лямбд внутри теста, и кириллица в пути ломает сборку под не-UTF-8
- * локалью (POSIX на CI — падает даже clean).
- */
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -21,11 +16,10 @@ class CountdownTest {
     private fun instant(text: String): Instant =
         LocalDateTime.parse(text).atZone(zone).toInstant()
 
-    /** Состояние, в котором до конца ровно [days] суток и [within] сверху. */
+    /** A state where exactly [days] whole days plus [within] remain. */
     private fun stateWithRemaining(days: Long, within: Duration, now: Instant): LifeState {
         val death = now.plus(Duration.ofDays(days)).plus(within)
         val birth = LocalDate.ofInstant(death, zone).minusYears(80)
-        // Подгоняем ровно: базовая продолжительность целая, разницу добираем событием.
         val base = LifeState(birthDate = birth, baseExpectancyYears = 80.0)
         val drift = Duration.between(LifeMath.expectedDeathInstant(base, zone), death)
         return base.plusEvent(
@@ -69,22 +63,31 @@ class CountdownTest {
 
         assertEquals(0L, LifeMath.remainingWholeDays(state, now, zone))
         assertEquals(Duration.ZERO, LifeMath.remainingWithinDay(state, now, zone))
+        assertEquals("0d 0:00:00", LifeMath.formatCountdown(state, now, zone))
     }
 
     @Test
     fun `default state gives a plausible day count`() {
         val now = instant("2026-09-13T22:03:00")
-        // с 13.09.2026 до 04.02.2074 — около 17.3 тысяч суток
         assertEquals(17310L, LifeMath.remainingWholeDays(LifeState(), now, zone))
     }
 
     @Test
-    fun `logging a cigarette shortens the countdown by fifteen minutes`() {
+    fun `countdown is printed as days then a padded clock`() {
         val now = instant("2026-09-13T22:03:00")
-        val before = LifeState()
-        val after = before.plusEvent(LifeEvent.now(EventType.SMOKE, now))
+        val text = LifeMath.formatCountdown(LifeState(), now, zone)
 
-        val diff = LifeMath.remaining(before, now, zone).minus(LifeMath.remaining(after, now, zone))
-        assertEquals(Duration.ofMinutes(15), diff)
+        assertTrue(text, Regex("""^\d+d \d{1,2}:\d{2}:\d{2}$""").matches(text))
+        assertTrue(text, text.startsWith("17310d "))
+    }
+
+    @Test
+    fun `chronometer format leaves a single placeholder for the ticking part`() {
+        val format = LifeMath.chronometerFormat(17310)
+
+        assertEquals("17310d %s", format)
+        // The Chronometer substitutes through String.format, so no stray specifiers.
+        assertEquals(1, Regex("%").findAll(format).count())
+        assertEquals("17310d 1:56:26", format.format("1:56:26"))
     }
 }

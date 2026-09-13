@@ -1,303 +1,223 @@
 # live-clock
 
-Виджет на домашний экран, показывающий, сколько жизни осталось, — и меняющий
-эту цифру от того, что ты делаешь.
+A home screen widget showing how much life is left — and moving that number
+according to what you do.
 
-Модель — микрожизни (microlives, David Spiegelhalter): одна микрожизнь равна
-получасу ожидаемой продолжительности жизни. Две сигареты стоят примерно одну
-микрожизнь, двадцать минут нагрузки примерно одну возвращают.
+The model is microlives (David Spiegelhalter): one microlife is half an hour of
+life expectancy. Two cigarettes cost roughly one microlife; twenty minutes of
+exercise gives roughly one back.
 
 ```
           ┌──────────────────────────────┐
-          │      17310д 1:56:26          │  ← сутки по расписанию, секунды сами
-          │  👶 ▓▓▓▓▓▓▓░░░░░ 💀 40.671%   │  ← доля прожитого
-          │  47.3918 лет · сегодня −45 м │
-          │  ┌────────┐┌────────┐┌────┐  │
-          │  │Покурил ││Отдохнул││Кофе│  │  ← закреплённые действия
-          │  └────────┘└────────┘└────┘  │
+          │      17310d 1:56:26          │  ← days on a schedule, seconds on their own
+          │  👶 ▓▓▓▓▓▓▓░░░░░ 💀 40.671%   │  ← the fraction already lived
+          │  47.3918 years · today −45m  │
+          │  ┌────────┐┌────────┐┌─────┐ │
+          │  │ Smoked ││ Rested ││Coffee│ │  ← pinned actions
+          │  └────────┘└────────┘└─────┘ │
           └──────────────────────────────┘
 ```
 
-Работает полностью офлайн. Источник правды — база на устройстве; выгрузка
-на сервер выключена по умолчанию и ничего не решает.
+Works entirely offline. The database on the device is the source of truth;
+uploading to a server is off by default and decides nothing.
 
-## Что нужно для сборки
+Interface in English or Russian, switchable in the app.
 
-- JDK 17 или новее
-- Android SDK: платформа `android-36` и `build-tools;36.0.0`
-- Android Studio не нужен — всё собирается из терминала
+## Building
 
-Путь к SDK берётся из переменной `ANDROID_HOME` либо из файла `local.properties`
-в корне проекта (он в `.gitignore`, создай свой):
+- JDK 17 or newer
+- Android SDK: platform `android-36` and `build-tools;36.0.0`
+- Android Studio is not required
+
+The SDK path comes from `ANDROID_HOME` or from `local.properties` in the project
+root (gitignored — create your own):
 
 ```properties
-sdk.dir=/путь/к/android-sdk
+sdk.dir=/path/to/android-sdk
 ```
-
-Если SDK ещё нет, хватит command-line tools:
 
 ```bash
-sdkmanager --install "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+./gradlew assembleDebug     # app/build/outputs/apk/debug/app-debug.apk, 31 MiB
+./gradlew assembleRelease   # app/build/outputs/apk/release/app-release.apk, 3.6 MiB
 ```
 
-## Собрать
+Use the release build for a phone: R8 makes it nine times smaller. It is signed
+with the same debug key as the debug build — for a personal app installed over
+USB a separate keystore is one more thing to lose, and losing it means being
+unable to update an installed build. Put your own key in `signingConfigs` in
+`app/build.gradle.kts` if it ever matters.
+
+R8 renames classes, and Glance and WorkManager look some of them up by name, so
+`proguard-rules.pro` keeps `ActionCallback`, `GlanceAppWidget`,
+`GlanceAppWidgetReceiver` and `ListenableWorker`. Without those the widget
+buttons would silently stop working — and only in release, where it is hardest
+to notice.
+
+The build runs with `allWarningsAsErrors`: any Kotlin warning fails it.
+
+## Installing over USB
+
+1. On the phone: Settings → About phone → tap Build number seven times.
+2. Settings → Developer options → enable USB debugging.
+3. Connect the cable and allow debugging for this computer.
 
 ```bash
-./gradlew assembleDebug
+adb devices                                                  # must show "device"
+adb install -r app/build/outputs/apk/release/app-release.apk
 ```
 
-APK окажется здесь:
+Or `./gradlew installDebug` to build and install in one step. If installation
+fails with `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, a build signed with a different
+key is already installed: `adb uninstall com.vsmelov.liveclock`.
 
-```
-app/build/outputs/apk/debug/app-debug.apk
-```
+### Adding the widget
 
-Для установки на телефон лучше собрать релиз — он в девять раз меньше
-(3.4 МиБ против 31), потому что прогнан через R8:
+Long-press an empty spot on the home screen → Widgets → Live Clock. It lays out
+from 2×2 upwards: on a narrow one the type shrinks and the emoji leaves the
+buttons; on a tall one a second row of buttons and a summary line appear.
 
-```bash
-./gradlew assembleRelease
-```
+## Where the numbers come from
 
-```
-app/build/outputs/apk/release/app-release.apk
-```
+Every value lives in `Coefficients.kt` and carries a proof in `EventType.kt`,
+shown in the app behind the "i" button next to each action. Sources come in five
+grades, visible in the list without opening anything:
 
-Релиз подписан тем же debug-ключом, что и debug-сборка. Для личного
-приложения, которое ставится по USB, отдельный keystore — лишняя сущность:
-в репозиторий его не положишь, а потеряв — не обновишь уже установленную
-сборку. Свой ключ прописывается в `signingConfigs` в `app/build.gradle.kts`.
-
-R8 переименовывает классы, а Glance и WorkManager поднимают часть из них
-по имени — поэтому в `proguard-rules.pro` стоят keep-правила на
-`ActionCallback`, `GlanceAppWidget`, `GlanceAppWidgetReceiver` и
-`ListenableWorker`. Без них кнопки виджета молча перестали бы работать,
-причём только в релизе.
-
-Сборка настроена на `allWarningsAsErrors`: любое предупреждение компилятора
-Kotlin валит билд. Это сделано намеренно — так «собирается без варнингов»
-проверяется само, а не глазами.
-
-## Поставить по USB
-
-1. На телефоне: «Настройки» → «О телефоне» → семь раз тапнуть по «Номер сборки».
-2. «Настройки» → «Для разработчиков» → включить «Отладка по USB».
-3. Подключить кабелем и разрешить отладку для этого компьютера
-   (на телефоне появится диалог с отпечатком ключа).
-
-Проверить, что телефон виден:
-
-```bash
-adb devices
-```
-
-Устройство должно быть в списке со статусом `device`. Если написано
-`unauthorized` — диалог на телефоне не подтверждён.
-
-Поставить:
-
-```bash
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-```
-
-Или одной командой, сразу со сборкой:
-
-```bash
-./gradlew installDebug
-```
-
-Флаг `-r` переустанавливает поверх, сохраняя данные. Если установка падает
-с `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, значит на телефоне лежит сборка,
-подписанная другим ключом — снеси её: `adb uninstall com.vsmelov.liveclock`.
-
-### Действия, поиск и закрепление
-
-Действий тридцать три. В приложении они идут списком с поиском: искать можно
-по подписи, по английскому id и по ключевым словам — «сижка» находит сигарету,
-«зал» находит тренировку, «бухло» находит алкоголь.
-
-Звезда рядом с действием закрепляет его на виджете, стрелки задают порядок
-кнопок. Сколько кнопок поместится — зависит от размера виджета: две на узком,
-три на широком, шесть на высоком. Рядом с каждым действием видно, сколько раз
-его вносили, чтобы закреплять то, чем реально пользуешься.
-
-Кнопка «i» открывает пруф: что мерили, как получилось число, чему верить
-не стоит и ссылка на источник. Уровень доверия виден и в самом списке —
-«Надёжно», «Средне», «Слабо», «Эффекта нет» или «Твоё значение».
-
-### Повесить виджет
-
-Долгий тап по свободному месту домашнего экрана → «Виджеты» → «Live Clock» →
-перетащить на экран. Размер — от 2×2 до 4×2 ячеек, виджет верстается на всём
-этом диапазоне: на узком шрифты ужимаются, а с кнопок уходит эмодзи, чтобы
-осталось место подписи.
-
-## Как править коэффициенты
-
-Все величины лежат в одном файле:
-
-```
-app/src/main/kotlin/com/vsmelov/liveclock/domain/Coefficients.kt
-```
-
-```kotlin
-object Coefficients {
-    const val MICROLIFE_MINUTES: Int = 30   // одна микрожизнь
-
-    const val SMOKE: Int = -15              // сигарета
-    const val DRINK: Int = -30              // бокал алкоголя
-    const val REST: Int = 15                // осознанный отдых, дыхание
-    const val WORKOUT: Int = 30             // тренировка от 20 минут
-}
-```
-
-Минус укорачивает жизнь, плюс удлиняет. Единица измерения — минуты.
-
-**Правка коэффициента не переписывает прошлое.** Каждое событие запоминает
-свою дельту в момент записи, поэтому вчерашняя сигарета остаётся стоившей
-столько, сколько стоила вчера. Это осознанное решение: иначе любая правка
-задним числом переколбашивала бы весь лог.
-
-### Как добавить новый тип события
-
-Два шага, оба в `domain/`.
-
-1. Константа в `Coefficients.kt`:
-
-   ```kotlin
-   const val JUNK_FOOD: Int = -10
-   ```
-
-2. Строка в `EventType.kt`:
-
-   ```kotlin
-   JUNK_FOOD(id = "junk_food", deltaMinutes = Coefficients.JUNK_FOOD, label = "Фастфуд", emoji = "🍔"),
-   ```
-
-Всё. Сетка действий в приложении, разбор сохранённого лога и выгрузка на
-сервер строятся из `EventType.entries` и подхватят новый тип сами.
-
-Кнопки **виджета** — единственное исключение: их два и они выбраны вручную
-в `LifeClockWidget.WIDGET_BUTTONS`. На виджете физически мало места, поэтому
-какие два действия там висят — отдельное решение, а не следствие списка типов.
-
-Пара правил про `id`:
-
-- `id` пишется в базу, поэтому после первого запуска его менять нельзя —
-  сохранённые события перестанут читаться;
-- переименовывать саму запись enum'а и менять их порядок при этом безопасно:
-  сериализуется именно `id`, а не `name` и не `ordinal`.
-
-## Откуда берутся коэффициенты
-
-Каждое значение живёт в `Coefficients.kt` и сопровождается пруфом в
-`EventType.kt`. Источники делятся на четыре сорта, и это видно в приложении:
-
-| Пометка | Что значит |
+| Grade | Meaning |
 |---|---|
-| Надёжно | мета-анализ или очень крупная когорта, эффект устойчив |
-| Средне | одна крупная работа либо разнобой между работами |
-| Слабо | мелкая или старая работа, вероятна обратная причинность |
-| Эффекта нет | проверяли, влияния на смертность не нашли |
-| Прикидка | направление известно, размер назначен на глаз |
-| Твоё значение | величину выбрал ты, а не исследование |
+| Solid | meta-analysis or a very large cohort, effect holds up |
+| Moderate | one large study, or studies that disagree |
+| Weak | small or old study, reverse causation likely |
+| Estimate | direction known, size set by hand |
+| No effect | checked, no influence on mortality found |
+| Your value | chosen by you, not by a study |
 
-Величины, которых нет в готовой таблице микрожизней, считаются формулой
-из той же статьи — `Microlives.minutesPerDay(hazardRatio)`:
+Values absent from the ready-made microlives table are computed by the formula
+from the same paper — `Microlives.minutesPerDay(hazardRatio)`:
 
 ```
-микрожизней в день = −10.9 × ln(HR)     (мужчины; для женщин −9.3)
+microlives per day = −10.9 × ln(HR)     (men; −9.3 for women)
 ```
 
-Формула проверена на опубликованных строках: мясо HR 1.13 даёт −1.33
-микрожизни (в таблице −1), овощи HR 0.66 даёт +4.53 (+4), спорт HR 0.81
-даёт +2.30 (+2). Так что новое действие добавляется без выдумывания: берётся
-hazard ratio из работы и подставляется в формулу.
+Checked against the published rows: red meat HR 1.13 gives −1.33 microlives
+(table says −1), vegetables HR 0.66 gives +4.53 (+4), exercise HR 0.81 gives
++2.30 (+2). So a new action needs no invention: take the hazard ratio from the
+study and put it in.
 
-Авторы обещают приближение только для HR между 0.75 и 1.3 — за пределами
-диапазона `Microlives.isTrusted` вернёт false.
+The authors only promise the approximation for HR between 0.75 and 1.3;
+`Microlives.isTrusted` returns false outside that. Sauna, cycling and running sit
+outside it, which is why they are the largest numbers in the list and almost
+certainly inflated.
 
-### Норма за период
+### Allowance per period
 
-Эпидемиология почти везде меряет ЛИШНЮЮ порцию сверх привычного, а не каждую.
-Мясо два раза в неделю — это и есть привычный фон, из которого посчитан базовый
-прогноз; штрафовать за него нечестно и бессмысленно как сигнал.
+The epidemiology almost everywhere measures an EXTRA serving on top of habit,
+not every serving. Meat twice a week is the ordinary background the baseline
+forecast was computed from; charging for it is wrong on the merits and useless as
+a signal.
 
-Поэтому у части действий есть норма (`Dosing`): пока укладываешься — одна цена,
-сверх — другая.
+So some actions carry an allowance: inside it one price, beyond it another.
 
-| Действие | Норма | В норме | Сверх |
+| Action | Allowance | Within | Beyond |
 |---|---|---|---|
-| Красное мясо | 3 за неделю | 0 | −30 |
-| Фастфуд | 1 за неделю | 0 | −30 |
-| Газировка | 2 за неделю | 0 | −20 |
-| Алкоголь | 1 за день | **+30** | −30 |
-| Сладкое | 1 за день | 0 | −10 |
-| Час у экрана | 2 за день | 0 | −15 |
-| Кофе | 3 за день | +10 | 0 |
-| Овощи | 5 за день | +24 | 0 |
-| Орехи | 1 за день | +73 | 0 |
+| Red meat | 3 per week | 0 | −30 |
+| Fast food | 1 per week | 0 | −30 |
+| Sugary drink | 2 per week | 0 | −20 |
+| Alcohol | 1 per day | **+30** | −30 |
+| Sweets | 1 per day | 0 | −10 |
+| Screen time | 2 per day | 0 | −15 |
+| Coffee | 3 per day | +10 | 0 |
+| Vegetables | 5 per day | +24 | 0 |
+| Nuts | 1 per day | +73 | 0 |
 
-Алкоголь тут не поблажка, а возврат к источнику: в таблице первая доза за день
-идёт в плюс и только следующие в минус. Плюсы симметрично упираются в потолок —
-четвёртая чашка кофе не даёт ничего, но и не отнимает.
+Alcohol is not indulgence here but a return to the source: in the table the first
+drink of the day goes up and only the following ones go down. Benefits hit a
+ceiling symmetrically — a fourth cup of coffee gives nothing and takes nothing.
 
-У сигарет нормы нет намеренно: безопасной дозы там не бывает.
+Cigarettes have no allowance on purpose: there is no safe dose.
 
-Цена считается в момент записи по текущему логу и замораживается в событии,
-поэтому лог остаётся честной записью того, что происходило.
+The price is computed at write time against the current log and frozen into the
+event, so the log stays a record of what happened.
 
-### Чего эти числа не значат
+### What these numbers do not mean
 
-Почти вся таблица измеряет «за день пожизненной привычки с 35 лет».
-То есть −30 за порцию мяса значит «есть по порции каждый день
-десятилетиями», а не «съел стейк — минус полчаса». Кнопка огрубляет это
-до разового события: жать удобно, но помни, чем платишь.
+Almost the whole table measures "per day of a lifelong habit from age 35". A tap
+coarsens that into a single event: convenient, but worth remembering.
 
-И это наблюдательные исследования, не эксперименты. Кто ест много мяса,
-тот в среднем больше курит и меньше двигается; у кого больше секса, тот
-скорее здоров, а не наоборот. Поправки делают, остаточное смешивание
-остаётся. Оговорка в пруфе есть у каждого действия — она обязательна
-и проверяется тестом.
+And these are observational studies, not experiments. People who eat a lot of
+meat also smoke more and move less; people who have more sex are healthier rather
+than the other way round. Adjustments are made, residual confounding remains.
+Every action carries a caveat in its proof — mandatory, and enforced by a test.
 
-## Почему число обновляется раз в полчаса, а секунды тикают
+## Editing the catalogue
 
-Это ограничение системы, а не недоделка.
+`tools/actions.py` is the single source of truth for actions: values, copy in
+both languages, evidence and allowances. `EventType.kt` and both locales' string
+files are generated from it, which is what keeps the translations in step.
 
-- `updatePeriodMillis` в `res/xml/life_clock_widget_info.xml` стоит на
-  `1800000` (30 минут). Меньше система молча округлит вверх.
-- Периодический `WorkManager` идёт раз в 15 минут — это его жёсткий минимум.
-- Секунды показывает `android.widget.Chronometer`, встроенный в виджет через
-  `AndroidRemoteViews` с `setCountDown(true)`. Он тикает средствами лаунчера,
-  наш процесс при этом спит.
+```bash
+python3 tools/gen.py          # regenerates both strings.xml files
+python3 tools/gen_kt.py       # regenerates EventType.kt
+python3 tools/check_locales.py
+python3 tools/check_ascii.py
+```
 
-Сутки подставляются прямо в формат `Chronometer`, поэтому строка выходит
-одна: `setChronometer(id, base, "17310д %s", true)` — сутки наши, `Ч:ММ:СС`
-он дорисовывает и тикает сам.
+Adding an action: a constant in `Coefficients.kt`, an entry in
+`tools/actions.py`, then regenerate. Search, pinning, the widget and sync all
+build from `EventType.entries` and pick it up on their own.
 
-Разделены они не для красоты: `Chronometer` форматирует время
-только как «Ч:ММ:СС» и не умеет сутки, поэтому 17310 суток он показал бы как
-415440 часов. Сутки рисуются отдельной надписью и пересчитываются по общему
-расписанию, тикает только остаток внутри суток.
+Widget buttons are the one exception: there are only a few and they are chosen by
+hand, by pinning them in the app.
 
-Отсюда известный шов: в момент, когда остаток внутри суток обнуляется, число
-суток ещё старое, а таймер уходит в минус — до ближайшего обновления виджета.
-Случается раз в сутки и живёт не дольше пятнадцати минут.
+Two rules about `id`: it is written into the database, so it must not change
+after the first run; renaming an enum entry or reordering entries is safe,
+because `id` is what gets serialised, not `name` or `ordinal`.
 
-Крупное число дополнительно пересчитывается сразу после нажатия кнопки —
-так что реакция на действие мгновенная, а по расписанию идёт только
-«естественное» уменьшение остатка.
+Search terms are deliberately not translated — they carry both languages at once,
+so "сижка" finds smoking with an English interface and "smoke" finds it with a
+Russian one.
 
-Нажатие кнопки на виджете делает ровно две вещи: пишет в базу и перерисовывает
-виджет. Ни сети, ни ожидания — коллбэк работает в узком окне, которое даёт
-система, и любая задержка там превращается в подвисшую кнопку.
+## Why the number refreshes twice an hour while the seconds tick
 
-## Синхронизация (необязательно)
+This is a system limit, not an omission.
 
-По умолчанию выключена, и приложение полностью самодостаточно без неё.
+- `updatePeriodMillis` in `res/xml/life_clock_widget_info.xml` is `1800000`
+  (30 minutes). Anything smaller is silently rounded up.
+- The periodic `WorkManager` job runs every 15 minutes — its hard floor.
+- The seconds come from `android.widget.Chronometer`, embedded through
+  `AndroidRemoteViews` with `setCountDown(true)`. The launcher ticks it while our
+  process sleeps.
 
-Включается в приложении: «Синхронизация» → галка, URL, Bearer-токен. После
-этого каждое новое событие ставит в очередь фоновую выгрузку — `POST` с телом:
+Days are substituted straight into the Chronometer format, so the line stays
+single: `setChronometer(id, base, "17310d %s", true)` — the days are ours, the
+"H:MM:SS" it draws and ticks itself.
+
+They are split that way because a Chronometer can only format "H:MM:SS" and
+cannot do days: 17,310 days would come out as 415,440 hours.
+
+Hence a known seam: at the moment the within-day remainder hits zero, the day
+count is still the old one and the timer dips negative until the next widget
+refresh. Once a day, for no longer than fifteen minutes.
+
+A button press does exactly two things: write to the database and redraw the
+widget. No network, no waiting — the callback runs in a narrow window the system
+grants, and any delay there becomes a button that feels stuck.
+
+## Backup
+
+Sync is off and the DataStore is the only copy of anything, so a lost phone is a
+lost history. Settings → Backup writes the whole log to a JSON file and reads it
+back. The format is the same one the app stores, pretty-printed, so the file can
+be read and edited by hand.
+
+A restore replaces the state wholesale rather than merging: merging two logs by
+timestamp would silently double every event that was re-imported.
+
+## Sync (optional)
+
+Off by default, and the app is entirely self-sufficient without it.
+
+Turn it on in the app: Sync → the switch, a URL, a Bearer token. After that every
+new event queues a background upload — a `POST` with this body:
 
 ```json
 {
@@ -308,70 +228,70 @@ hazard ratio из работы и подставляется в формулу.
 }
 ```
 
-Заголовок: `Authorization: Bearer <токен>`.
+Header: `Authorization: Bearer <token>`.
 
-Отправляется только хвост, которого сервер ещё не видел. Нет сети — событие
-спокойно лежит в базе, воркер повторит попытку позже. Сервер ничего не
-возвращает и не может переписать локальное состояние.
+Only the tail the server has not seen is sent. With no network the event sits in
+the database and the worker retries later. The server returns nothing and cannot
+overwrite local state.
 
-**Только `https`.** По открытому `http` токен ушёл бы в эфир открытым текстом,
-да и Android с `targetSdk 36` режет cleartext по умолчанию, так что приложение
-отвергает такой URL сразу и с внятным сообщением.
+**https only.** Over plain http the token would travel in the clear, and Android
+with `targetSdk 36` blocks cleartext anyway, so the app rejects such a URL
+outright and says why.
 
-## Тесты
+## Tests
 
 ```bash
 ./gradlew testDebugUnitTest
 ```
 
-47 тестов на доменную логику: расчёт остатка, применение и отмена событий,
-расширяемость `EventType`, формат хранения и выбор реализации синка.
+105 tests over the domain: the remaining-life arithmetic, applying and undoing
+events, allowances, streaks, the weekly summary, `EventType` extensibility, the
+hazard-ratio conversion, the storage format, backups and sync client selection.
 
-Доменный слой намеренно не зависит от `android.*`, поэтому тесты идут
-на голой JVM — без Robolectric и без эмулятора.
+The domain deliberately does not depend on `android.*` beyond `@StringRes`
+constants, so the tests run on a bare JVM — no Robolectric and no emulator.
 
-Имена тестовых методов латиницей не случайно: из backtick-имени собирается
-имя `.class` для лямбд внутри теста, и кириллица в таком пути роняет сборку
-под не-UTF-8 локалью (обычное дело на CI — падает даже `clean`).
-
-## Как устроено
+## How it is put together
 
 ```
-domain/     LifeState, LifeEvent, EventType, Coefficients, LifeMath
-            Чистый Kotlin без android.* — здесь вся арифметика.
-data/       DataStore Preferences + kotlinx.serialization.
-            Состояние лежит одним JSON-блобом, поэтому запись атомарна.
-sync/       EventSyncClient: NoopSyncClient (по умолчанию) и HttpSyncClient.
-work/       SyncWorker (выгрузка) и WidgetRefreshWorker (пересчёт числа).
-widget/     Glance-виджет, Chronometer и обработчик нажатий.
-ui/         Compose-Activity: настройки, лог за сегодня, сетка действий.
+domain/     LifeState, LifeEvent, EventType, Coefficients, Microlives, LifeMath,
+            Dosing, Evidence, AppLanguage. All the arithmetic lives here.
+data/       DataStore Preferences plus kotlinx.serialization, and backups.
+i18n/       Resolving resources in the chosen language, widget included.
+sync/       EventSyncClient: NoopSyncClient (default) and HttpSyncClient.
+work/       SyncWorker (upload) and WidgetRefreshWorker (recompute).
+widget/     The Glance widget, the Chronometer and the tap handler.
+ui/         The Compose Activity: actions, streaks, the week, settings, backup.
+tools/      The action catalogue and its generators.
 ```
 
-Полоса прожитого считается от полуночи дня рождения до ожидаемого момента,
-то есть с учётом всего лога: каждая сигарета двигает не только остаток, но и
-знаменатель, поэтому процент растёт чуть быстрее, чем просто от хода времени.
-
-Расчёт целиком в `LifeMath.expectedDeathInstant`:
+The calculation, entirely in `LifeMath.expectedDeathInstant`:
 
 ```
-ожидаемый момент = полночь дня рождения
-                 + базовая ожидаемая продолжительность
-                 + сумма дельт всего лога
-остаток          = ожидаемый момент − сейчас
+expected moment = midnight on the date of birth
+                + base life expectancy
+                + the sum of every delta in the log
+remaining       = expected moment − now
 ```
 
-Целые годы прибавляются календарно (`LocalDate.plusYears`), поэтому високосные
-учтены точно. Средняя длина года (365.2425 суток) нужна только для дробной
-части вроде `80.5`.
+Whole years are added by the calendar (`LocalDate.plusYears`), so leap years are
+exact. The mean year length (365.2425 days) is only needed for a fractional
+expectancy such as `80.5`.
 
-Остаток знаковый: если ожидаемый момент уже позади, показывается отрицательное
-число, а не ноль.
+The remainder is signed: if the expected moment is already behind, a negative
+number is shown rather than a zero.
 
-## Стек
+The lived fraction is measured from midnight on the date of birth to the expected
+moment, so it accounts for the whole log: every cigarette moves the denominator
+as well as the remainder, and the percentage rises slightly faster than time
+alone would carry it.
+
+## Stack
 
 Kotlin 2.1.21 · Gradle 8.14.3 (Kotlin DSL) · AGP 8.13.0 · minSdk 31 (Android 12)
 · targetSdk 36 · Jetpack Glance 1.2.0 · Compose · DataStore Preferences ·
 kotlinx.serialization · WorkManager
 
-Без Firebase, без аналитики, без сторонних SDK. HTTP-клиент — `HttpURLConnection`
-из JDK: ради одной POST-ручки тянуть зависимость незачем.
+No Firebase, no analytics, no third-party SDKs. The HTTP client is the JDK's
+`HttpURLConnection`: pulling in a dependency for one POST endpoint is not worth
+it.

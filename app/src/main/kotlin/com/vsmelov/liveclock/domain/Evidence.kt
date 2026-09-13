@@ -1,44 +1,50 @@
 package com.vsmelov.liveclock.domain
 
+import androidx.annotation.StringRes
+import com.vsmelov.liveclock.R
+
 /**
- * Откуда взялся коэффициент. Показывается по кнопке «i» рядом с действием.
+ * Where a coefficient came from. Shown behind the "i" button next to an action.
  *
- * Смысл в том, чтобы цифру нельзя было принять за истину, не увидев,
- * на чём она держится. Почти вся эта область — наблюдательные исследования,
- * где связь есть, а причинность недоказуема.
+ * The point is that a number should not be mistakable for truth without seeing
+ * what holds it up. Almost this entire field is observational: the association
+ * is real, the causation is not established.
+ *
+ * [sourceTitle] is deliberately a plain string rather than a resource — author
+ * names and journal titles are proper nouns and do not get translated.
  */
 data class Evidence(
     val confidence: Confidence,
-    /** Что именно мерили: «1 порция 85 г в день, пожизненно с 35 лет». */
-    val exposure: String,
-    /** Как из исследования получилось число. */
-    val basis: String,
-    /** Чему здесь верить не стоит. Пустая строка не допускается. */
-    val caveat: String,
+    /** What was actually measured: "one 85 g serving a day, lifelong from 35". */
+    @StringRes val exposureRes: Int,
+    /** How the number follows from the study. */
+    @StringRes val basisRes: Int,
+    /** What not to trust here. Never empty — a test enforces it. */
+    @StringRes val caveatRes: Int,
     val sourceTitle: String,
     val sourceUrl: String,
 )
 
-/** Насколько твёрдо стоит число. */
-enum class Confidence(val label: String) {
-    /** Мета-анализ или очень крупная когорта, эффект устойчив. */
-    STRONG("Надёжно"),
+/** How firmly a number stands. */
+enum class Confidence(@StringRes val labelRes: Int) {
+    /** Meta-analysis or a very large cohort, effect holds up. */
+    STRONG(R.string.confidence_strong),
 
-    /** Одна крупная работа либо разнобой между работами. */
-    MODERATE("Средне"),
+    /** One large study, or studies that disagree. */
+    MODERATE(R.string.confidence_moderate),
 
-    /** Мелкая или старая работа, вероятна обратная причинность. */
-    WEAK("Слабо"),
+    /** Small or old study, reverse causation likely. */
+    WEAK(R.string.confidence_weak),
 
-    /** Проверяли — эффекта на смертность не нашли. */
-    NONE("Эффекта нет"),
+    /** It was checked and no effect on mortality was found. */
+    NONE(R.string.confidence_none),
 
     /**
-     * Направление эффекта в литературе общепринято, но конкретной работы
-     * под рукой нет — величина назначена по порядку соседних строк.
+     * The direction is widely accepted but no specific study was at hand — the
+     * size was set to sit sensibly beside neighbouring rows.
      */
-    ESTIMATE("Прикидка"),
+    ESTIMATE(R.string.confidence_estimate),
 
-    /** Величину выбрал пользователь, а не исследование. */
-    CHOSEN("Твоё значение"),
+    /** The value was chosen by the user, not by a study. */
+    CHOSEN(R.string.confidence_chosen),
 }

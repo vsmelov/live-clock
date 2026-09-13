@@ -4,42 +4,42 @@ import kotlin.math.ln
 import kotlin.math.roundToInt
 
 /**
- * Перевод опубликованных hazard ratio в минуты жизни.
+ * Converts published hazard ratios into minutes of life.
  *
- * Формула не выдумана — она из той же статьи, что и таблица
- * (BMJ 2012;345:e8223): «для hazard ratio между 0.75 и 1.3 дневное изменение
- * микрожизней хорошо приближается 10.9·log(r) для мужчин и 9.3·log(r)
- * для женщин».
+ * The formula is not invented — it comes from the same paper as the table
+ * (BMJ 2012;345:e8223): "for hazard ratios between 0.75 and 1.3, the daily
+ * change in microlives is well approximated by 10.9·log(r) for men and
+ * 9.3·log(r) for women".
  *
- * Это даёт способ считать коэффициент для любого исследования, а не только
- * для строк готовой таблицы. Проверка на известных строках:
- *   мясо   HR 1.13 -> -1.33 микрожизни (в таблице -1)
- *   овощи  HR 0.66 -> +4.53            (в таблице +4)
- *   спорт  HR 0.81 -> +2.30            (в таблице +2)
- *   кофе   HR 0.90 -> +1.15            (в таблице +1)
- * Таблица округляет до целых микрожизней, формула — нет.
+ * That gives a way to derive a coefficient from any study rather than only from
+ * the rows of a ready-made table. Checked against the published rows:
+ *   red meat   HR 1.13 -> -1.33 microlives (table says -1)
+ *   vegetables HR 0.66 -> +4.53            (table says +4)
+ *   exercise   HR 0.81 -> +2.30            (table says +2)
+ *   coffee     HR 0.90 -> +1.15            (table says +1)
+ * The table rounds to whole microlives, the formula does not.
  */
 object Microlives {
 
-    /** Одна микрожизнь — полчаса ожидаемой жизни. */
+    /** One microlife is half an hour of life expectancy. */
     const val MINUTES: Int = 30
 
-    /** Коэффициент для мужчин. Для женщин в статье 9.3. */
+    /** The men's coefficient. The paper gives 9.3 for women. */
     private const val MEN_COEFFICIENT = 10.9
 
-    /** Диапазон, в котором авторы называют приближение хорошим. */
+    /** The range in which the authors call the approximation good. */
     private val TRUSTED_RANGE = 0.75..1.3
 
-    /** Микрожизней в день при пожизненном воздействии с hazard ratio [hazardRatio]. */
+    /** Microlives per day under lifelong exposure with the given [hazardRatio]. */
     fun perDay(hazardRatio: Double): Double {
-        require(hazardRatio > 0) { "hazard ratio должен быть положительным" }
+        require(hazardRatio > 0) { "a hazard ratio must be positive" }
         return -MEN_COEFFICIENT * ln(hazardRatio)
     }
 
-    /** То же в минутах — готовый коэффициент для [Coefficients]. */
+    /** The same in minutes — a ready coefficient for [Coefficients]. */
     fun minutesPerDay(hazardRatio: Double): Int =
         (perDay(hazardRatio) * MINUTES).roundToInt()
 
-    /** Приближение за пределами этого диапазона авторы не обещают. */
+    /** Outside this range the authors promise nothing about the approximation. */
     fun isTrusted(hazardRatio: Double): Boolean = hazardRatio in TRUSTED_RANGE
 }

@@ -10,11 +10,12 @@ import java.time.Instant
 import java.time.LocalDate
 
 /**
- * Формат хранения состояния в DataStore и одновременно формат тела синка.
+ * The storage format for the state, and at the same time the body of a sync
+ * request and of an exported backup.
  *
- * Доменные типы (`LocalDate`, `Instant`, `EventType`) сознательно не
- * сериализуются напрямую: DTO даёт стабильную схему, которую видно глазами
- * и которую можно версионировать, не трогая доменную модель.
+ * The domain types (`LocalDate`, `Instant`, `EventType`) are deliberately not
+ * serialised directly: a DTO gives a stable schema that can be read by eye and
+ * versioned without touching the domain model.
  */
 @Serializable
 data class LifeStateDto(
@@ -30,13 +31,13 @@ data class LifeStateDto(
 
 @Serializable
 data class LifeEventDto(
-    /** [EventType.id], а не `name` — переименования в enum'е безопасны. */
+    /** [EventType.id], not `name` — renaming enum entries stays safe. */
     val type: String,
     @SerialName("at_epoch_second") val atEpochSecond: Long,
     @SerialName("delta_minutes") val deltaMinutes: Int,
 )
 
-/** Тело POST-запроса в [com.vsmelov.liveclock.sync.HttpSyncClient]. */
+/** The POST body used by [com.vsmelov.liveclock.sync.HttpSyncClient]. */
 @Serializable
 data class SyncPayload(
     val events: List<LifeEventDto>,
@@ -44,13 +45,14 @@ data class SyncPayload(
 )
 
 /**
- * Настройки с `ignoreUnknownKeys`: если схема уедет вперёд, а потом откатится,
- * старая сборка не уронит чтение, а просто проигнорирует лишние поля.
+ * `ignoreUnknownKeys` on purpose: if the schema moves forward and is later rolled
+ * back, an older build should ignore the extra fields rather than fail to read.
+ * `prettyPrint` because this same format is what a human opens after an export.
  */
 internal val LifeClockJson: Json = Json {
     ignoreUnknownKeys = true
     encodeDefaults = true
-    prettyPrint = false
+    prettyPrint = true
 }
 
 fun LifeState.toDto(): LifeStateDto = LifeStateDto(
@@ -66,11 +68,11 @@ fun LifeEvent.toDto(): LifeEventDto = LifeEventDto(
 )
 
 /**
- * Обратное преобразование.
+ * The reverse mapping.
  *
- * События неизвестного типа молча пропускаются: если тип удалён из
- * [EventType], лучше показать остальной лог, чем не открыть приложение.
- * Их дельта при этом перестаёт влиять на расчёт — это осознанный размен.
+ * Events of an unknown type are dropped silently: if a type was deleted from
+ * [EventType], showing the rest of the log beats failing to open the app. Their
+ * delta then stops counting, which is a deliberate trade.
  */
 fun LifeStateDto.toDomain(): LifeState = LifeState(
     birthDate = LocalDate.parse(birthDate),

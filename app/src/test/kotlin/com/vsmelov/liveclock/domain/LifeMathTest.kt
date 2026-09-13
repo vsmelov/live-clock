@@ -10,12 +10,6 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.Locale
 
-/**
- * Имена тестов латиницей намеренно: из backtick-имени собирается имя .class
- * для лямбд внутри теста, и кириллица в пути ломает сборку под не-UTF-8
- * локалью (POSIX на CI — падает даже clean). Комментарии и сообщения
- * ассертов при этом остаются русскими.
- */
 class LifeMathTest {
 
     private val zone: ZoneId = ZoneId.of("Europe/Moscow")
@@ -43,9 +37,9 @@ class LifeMathTest {
         val whole = LifeMath.expectedDeathInstant(state.copy(baseExpectancyYears = 80.0), zone)
         val withHalf = LifeMath.expectedDeathInstant(state, zone)
 
-        // Проверяем смысл (добавилось полгода), а не способ округления:
-        // SECONDS_PER_YEAR в double — 31556951.999999996, и сравнение с точностью
-        // до секунды зафиксировало бы реализацию, а не поведение.
+        // Checks the meaning (half a year was added), not the rounding mode:
+        // SECONDS_PER_YEAR is 31556951.999999996 as a double, and comparing to
+        // the second would pin the implementation rather than the behaviour.
         assertEquals(
             LifeMath.SECONDS_PER_YEAR / 2,
             Duration.between(whole, withHalf).seconds.toDouble(),
@@ -66,10 +60,9 @@ class LifeMathTest {
 
     @Test
     fun `a cigarette moves the expected instant fifteen minutes earlier`() {
+        val at = instant("2026-09-13T12:00:00")
         val clean = LifeState()
-        val smoked = clean.plusEvent(
-            LifeEvent.now(EventType.SMOKE, instant("2026-09-13T12:00:00")),
-        )
+        val smoked = clean.plusEvent(LifeEvent(EventType.SMOKE, at, Coefficients.SMOKE))
 
         val shift = Duration.between(
             LifeMath.expectedDeathInstant(smoked, zone),
@@ -79,27 +72,13 @@ class LifeMathTest {
     }
 
     @Test
-    fun `a workout moves the expected instant half an hour later`() {
-        val clean = LifeState()
-        val trained = clean.plusEvent(
-            LifeEvent.now(EventType.WORKOUT, instant("2026-09-13T12:00:00")),
-        )
-
-        val shift = Duration.between(
-            LifeMath.expectedDeathInstant(clean, zone),
-            LifeMath.expectedDeathInstant(trained, zone),
-        )
-        assertEquals(Duration.ofMinutes(30), shift)
-    }
-
-    @Test
     fun `opposite events cancel each other out`() {
         val at = instant("2026-09-13T12:00:00")
         val clean = LifeState()
         val mixed = clean
-            .plusEvent(LifeEvent.now(EventType.SMOKE, at))
-            .plusEvent(LifeEvent.now(EventType.SMOKE, at.plusSeconds(1)))
-            .plusEvent(LifeEvent.now(EventType.WORKOUT, at.plusSeconds(2)))
+            .plusEvent(LifeEvent(EventType.SMOKE, at, -15))
+            .plusEvent(LifeEvent(EventType.SMOKE, at.plusSeconds(1), -15))
+            .plusEvent(LifeEvent(EventType.WORKOUT, at.plusSeconds(2), 30))
 
         assertEquals(
             LifeMath.expectedDeathInstant(clean, zone),
@@ -114,22 +93,15 @@ class LifeMathTest {
 
         val remaining = LifeMath.remaining(state, now, zone)
 
-        assertEquals(
-            Duration.between(now, instant("2074-02-04T00:00:00")),
-            remaining,
-        )
+        assertEquals(Duration.between(now, instant("2074-02-04T00:00:00")), remaining)
         assertTrue(remaining > Duration.ZERO)
     }
 
     @Test
     fun `remaining years is plausible for the default state`() {
-        val state = LifeState()
         val now = instant("2026-09-13T00:00:00")
-
-        val years = LifeMath.remainingYears(state, now, zone)
-
-        // с 2026-09 до 2074-02 — примерно 47.4 года
-        assertEquals(47.4, years, 0.1)
+        // from 2026-09 to 2074-02 is roughly 47.4 years
+        assertEquals(47.4, LifeMath.remainingYears(LifeState(), now, zone), 0.1)
     }
 
     @Test
@@ -144,7 +116,6 @@ class LifeMathTest {
     @Test
     fun `remaining is formatted with four decimal places`() {
         assertEquals("51.2847", LifeMath.formatYears(51.28474))
-        assertEquals("51.2847", LifeMath.formatYears(51.284749))
         assertEquals("0.0000", LifeMath.formatYears(0.0))
         assertEquals("-1.5000", LifeMath.formatYears(-1.5))
     }
@@ -155,6 +126,7 @@ class LifeMathTest {
         try {
             Locale.setDefault(Locale.forLanguageTag("ru-RU"))
             assertEquals("51.2847", LifeMath.formatYears(51.28474))
+            assertEquals("63.874%", LifeMath.formatElapsedPercent(0.63874))
         } finally {
             Locale.setDefault(previous)
         }

@@ -12,16 +12,16 @@ import com.vsmelov.liveclock.R
 import java.time.Duration
 
 /**
- * Секундный обратный отсчёт остатка жизни.
+ * The per-second countdown of life remaining.
  *
- * Единственная часть виджета, которая обновляется чаще, чем раз в полчаса —
- * и обновляется она без нас: [android.widget.Chronometer] тикает средствами
- * лаунчера. Поднимать ради секунд свой процесс система всё равно не позволит.
+ * The only part of the widget that updates more often than twice an hour — and it
+ * updates without us: [android.widget.Chronometer] is ticked by the launcher. The
+ * system would never let us wake our own process once a second anyway.
  *
- * Тикает только остаток внутри суток: Chronometer форматирует время как
- * «Ч:ММ:СС» и не умеет сутки, поэтому 17310 дней он показал бы как
- * 415440 часов. Сутки подставляются строкой в [format] и обновляются
- * по общему расписанию виджета — получается «17310д 1:56:26» одной строкой.
+ * Only the within-day remainder ticks: a Chronometer formats time as "H:MM:SS"
+ * and cannot do days, so 17,310 days would come out as 415,440 hours. The days
+ * are substituted into [format] and refreshed on the widget's ordinary schedule,
+ * giving "17310d 1:56:26" on one line.
  */
 @Composable
 fun CountdownChronometer(
@@ -36,16 +36,16 @@ fun CountdownChronometer(
         setChronometer(R.id.countdown, elapsedRealtimeBaseIn(withinDay), format, true)
         setTextViewTextSize(R.id.countdown, TypedValue.COMPLEX_UNIT_SP, textSizeSp)
     }
-    // Явный fillMaxSize — иначе AndroidRemoteViews раздувается на всю
-    // оставшуюся высоту колонки и выдавливает кнопки за край виджета.
+    // An explicit fillMaxSize: without it AndroidRemoteViews swells to the whole
+    // remaining column height and pushes the buttons off the edge of the widget.
     AndroidRemoteViews(remoteViews = remoteViews, modifier = modifier.fillMaxSize())
 }
 
 /**
- * Целевой момент отсчёта в таймбазе [SystemClock.elapsedRealtime].
+ * The countdown target expressed in the [SystemClock.elapsedRealtime] timebase.
  *
- * Chronometer считает не по стенным часам, а по времени с момента загрузки,
- * поэтому цель нужно выражать в той же шкале.
+ * A Chronometer counts from boot time rather than from the wall clock, so the
+ * target has to be expressed on the same scale.
  */
 internal fun elapsedRealtimeBaseIn(remaining: Duration): Long =
     SystemClock.elapsedRealtime() + remaining.toMillis()

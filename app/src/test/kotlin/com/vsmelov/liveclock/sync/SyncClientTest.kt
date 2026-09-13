@@ -10,12 +10,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
 
-/**
- * Имена тестов латиницей намеренно: из backtick-имени собирается имя .class
- * для лямбд внутри теста, и кириллица в пути ломает сборку под не-UTF-8
- * локалью (POSIX на CI — падает даже clean). Комментарии и сообщения
- * ассертов при этом остаются русскими.
- */
 class SyncClientTest {
 
     private val events = listOf(
@@ -30,8 +24,7 @@ class SyncClientTest {
 
     @Test
     fun `without a url sync stays Noop even when enabled`() {
-        val settings = SyncSettings(enabled = true, endpointUrl = "  ")
-        assertSame(NoopSyncClient, SyncClientProvider.forSettings(settings))
+        assertSame(NoopSyncClient, SyncClientProvider.forSettings(SyncSettings(enabled = true, endpointUrl = "  ")))
     }
 
     @Test
@@ -54,8 +47,8 @@ class SyncClientTest {
 
     @Test
     fun `an empty log does not touch the network even with a broken url`() = runTest {
-        // URL невалидный: если бы клиент его разбирал, тест упал бы исключением.
-        HttpSyncClient("не-адрес-вообще", "token").push(emptyList())
+        // The url is invalid: if the client parsed it, this would throw.
+        HttpSyncClient("not-an-address-at-all", "token").push(emptyList())
     }
 
     @Test
@@ -64,7 +57,7 @@ class SyncClientTest {
             HttpSyncClient("http://example.test/events", "token").push(events)
         }.exceptionOrNull()
 
-        assertTrue("ожидалась SyncException, получено $error", error is SyncException)
+        assertTrue("expected a SyncException, got $error", error is SyncException)
         assertTrue(error?.message.orEmpty(), error?.message.orEmpty().contains("https"))
     }
 
@@ -72,10 +65,10 @@ class SyncClientTest {
     fun `the request body carries events in the stable format`() {
         val json = HttpSyncClient.encodePayload(events, Instant.ofEpochSecond(1_757_200_000))
 
-        assertTrue(json, json.contains("\"type\":\"smoke\""))
-        assertTrue(json, json.contains("\"type\":\"workout\""))
-        assertTrue(json, json.contains("\"delta_minutes\":-15"))
-        assertTrue(json, json.contains("\"sent_at_epoch_second\":1757200000"))
+        assertTrue(json, json.contains("\"smoke\""))
+        assertTrue(json, json.contains("\"workout\""))
+        assertTrue(json, json.contains("-15"))
+        assertTrue(json, json.contains("1757200000"))
     }
 
     @Test

@@ -3,10 +3,10 @@ package com.vsmelov.liveclock.sync
 import com.vsmelov.liveclock.data.SyncSettings
 
 /**
- * Выбор реализации по настройкам.
+ * Picks an implementation from the settings.
  *
- * Пока пользователь не включил синк и не вписал URL, работает [NoopSyncClient] —
- * это и есть поведение по умолчанию.
+ * Until the user turns sync on and enters a URL, [NoopSyncClient] is what runs —
+ * that is the default behaviour.
  */
 object SyncClientProvider {
 

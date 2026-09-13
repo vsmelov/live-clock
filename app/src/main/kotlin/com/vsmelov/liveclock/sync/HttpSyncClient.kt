@@ -15,12 +15,12 @@ import java.net.URL
 import java.time.Instant
 
 /**
- * POST лога событий на произвольный endpoint с Bearer-токеном.
+ * POSTs the event log to an arbitrary endpoint with a Bearer token.
  *
- * Сознательно на голом [HttpURLConnection] из JDK: задача — одна POST-ручка,
- * тянуть ради неё сторонний HTTP-клиент незачем.
+ * Deliberately on the JDK's bare [HttpURLConnection]: the job is one POST
+ * endpoint, and pulling in a third-party HTTP client for that is not worth it.
  *
- * Вызывается только из воркера, никогда из ActionCallback.
+ * Called only from the worker, never from an ActionCallback.
  */
 class HttpSyncClient(
     private val endpointUrl: String,
@@ -54,14 +54,15 @@ class HttpSyncClient(
 
                 val code = connection.responseCode
                 if (code !in SUCCESS_CODES) {
-                    // Тело ошибки читаем, но в исключение не кладём: там может
-                    // оказаться что угодно, включая эхо заголовков с токеном.
+                    // The error body is drained but never put into the exception:
+                    // it could contain anything, including an echo of the headers
+                    // with the token in them.
                     connection.errorStream?.use { it.readBytes() }
-                    throw SyncException("Сервер синка ответил $code")
+                    throw SyncException("Sync server answered $code")
                 }
                 connection.inputStream.use { it.readBytes() }
             } catch (error: IOException) {
-                throw if (error is SyncException) error else SyncException("Синк не удался", error)
+                throw if (error is SyncException) error else SyncException("Sync failed", error)
             } finally {
                 connection.disconnect()
             }
@@ -72,22 +73,22 @@ class HttpSyncClient(
         val uri = try {
             URI(raw.trim())
         } catch (error: IllegalArgumentException) {
-            throw SyncException("Некорректный URL синка", error)
+            throw SyncException("Malformed sync URL", error)
         }
 
-        // Только https. Bearer-токен по открытому http ушёл бы в эфир открытым
-        // текстом, и targetSdk 36 всё равно режет cleartext по умолчанию —
-        // так что явная ошибка полезнее невнятного отказа платформы.
+        // https only. A Bearer token over plain http would go out in the clear,
+        // and targetSdk 36 blocks cleartext by default anyway — so an explicit
+        // error is more useful than an opaque refusal from the platform.
         if (!uri.scheme.equals("https", ignoreCase = true)) {
-            throw SyncException("URL синка должен быть https, а не ${uri.scheme}")
+            throw SyncException("The sync URL must be https, not ${uri.scheme}")
         }
 
         return try {
             uri.toURL()
         } catch (error: MalformedURLException) {
-            throw SyncException("Некорректный URL синка", error)
+            throw SyncException("Malformed sync URL", error)
         } catch (error: IllegalArgumentException) {
-            throw SyncException("Некорректный URL синка", error)
+            throw SyncException("Malformed sync URL", error)
         }
     }
 
@@ -95,7 +96,7 @@ class HttpSyncClient(
         private const val TIMEOUT_MILLIS = 15_000
         private val SUCCESS_CODES = 200..299
 
-        /** Тело запроса. Вынесено отдельно, чтобы проверялось без сети. */
+        /** The request body. Kept separate so it can be checked without a network. */
         fun encodePayload(events: List<LifeEvent>, sentAt: Instant): String =
             LifeClockJson.encodeToString(
                 SyncPayload(

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,70 +40,88 @@ import com.vsmelov.liveclock.data.LifeRepository
 import com.vsmelov.liveclock.domain.EventType
 import com.vsmelov.liveclock.domain.LifeMath
 import com.vsmelov.liveclock.domain.LifeState
+import com.vsmelov.liveclock.i18n.Localization
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlin.math.abs
+
+/** A pinned action with its label already resolved in the chosen language. */
+private data class WidgetButton(val type: EventType, val label: String)
 
 /**
- * Виджет на домашний экран: обратный отсчёт остатка жизни и закреплённые
- * кнопки быстрых действий.
+ * The home screen widget: a countdown of life remaining and pinned quick actions.
  *
- * Что здесь обновляется и как часто:
- * - секунды тикают сами, на Chronometer, без участия нашего процесса;
- * - сутки, годы и итог за день пересчитываются по расписанию системы
- *   (30 минут из appwidget-provider.xml плюс воркер на 15 минут)
- *   и сразу после нажатия кнопки.
+ * What refreshes, and how often:
+ * - the seconds tick by themselves, on a Chronometer, with our process asleep;
+ * - days, years and the day's total are recomputed on the system's schedule
+ *   (30 minutes from appwidget-provider.xml plus a 15-minute worker) and
+ *   immediately after a button press.
  *
- * Чаще система обновлять не даст, и обходить это бессмысленно: попытка
- * будить процесс раз в секунду закончится тем, что нас прибьют за батарею.
+ * The system will not allow more, and working around it is pointless: waking the
+ * process once a second ends with the app being killed for battery use.
  */
 class LifeClockWidget : GlanceAppWidget() {
 
     /**
-     * Виджет должен верстаться от 2x2 и выше. Glance выберет ближайший
-     * подходящий размер и подставит его в [LocalSize].
+     * The widget has to lay out from 2x2 upwards. Glance picks the closest
+     * matching size and reports it through [LocalSize].
      */
     override val sizeMode: SizeMode = SizeMode.Responsive(setOf(COMPACT, WIDE, TALL))
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val repository = LifeRepository.from(context)
-        // Первые значения читаем до provideContent, чтобы виджет не моргал
-        // пустотой на старте композиции.
+        // Read the first values before provideContent so the widget does not
+        // flash empty while the composition starts.
         val initialState = repository.currentState()
         val initialPinned = repository.currentPinnedTypes()
+        val language = repository.currentLanguage()
+
+        // Labels are resolved here rather than inside the composition: Glance
+        // gives the composition the process context, which answers in the device
+        // language and would ignore the language chosen in the app.
+        val localized = Localization.contextFor(context, language)
+        val buttons = initialPinned.ifEmpty { EventType.DEFAULT_PINNED }
+            .map { type -> WidgetButton(type, localized.getString(type.labelRes)) }
+        val daysSuffix = localized.getString(R.string.widget_days_suffix)
+        val todaySuffix = localized.getString(R.string.widget_today_suffix)
 
         provideContent {
             val state by repository.state.collectAsState(initial = initialState)
-            val pinned by repository.pinnedTypes.collectAsState(initial = initialPinned)
-            WidgetBody(state = state, pinned = pinned)
+            WidgetBody(
+                state = state,
+                buttons = buttons,
+                daysSuffix = daysSuffix,
+                todaySuffix = todaySuffix,
+            )
         }
     }
 
     companion object {
-        /** Примерно две ячейки лаунчера. */
+        /** Roughly two launcher cells. */
         private val COMPACT = DpSize(110.dp, 110.dp)
 
-        /** Четыре ячейки в ширину, две в высоту. */
+        /** Four cells wide, two tall. */
         private val WIDE = DpSize(250.dp, 110.dp)
 
-        /** Четыре ячейки в ширину, три и выше. */
+        /** Four cells wide, three or more tall. */
         private val TALL = DpSize(250.dp, 190.dp)
 
-        /** Ниже этой ширины подписи и шрифты ужимаются. */
+        /** Below this width labels and type sizes shrink. */
         internal val COMPACT_WIDTH_THRESHOLD = 180.dp
 
-        /** Выше этой высоты помещается второй ряд кнопок. */
+        /** Above this height a second row of buttons fits. */
         internal val TALL_HEIGHT_THRESHOLD = 160.dp
     }
 }
 
-/** Во что превращается доступное место. Всё, что зависит от размера, — здесь. */
+/** Everything that depends on the available space, in one place. */
 private data class WidgetMetrics(
     val compact: Boolean,
     val tall: Boolean,
     val buttonsPerRow: Int,
     val buttonRows: Int,
-    val chronometerHeight: androidx.compose.ui.unit.Dp,
+    val chronometerHeight: Dp,
     val chronometerSizeSp: Float,
     val showSummary: Boolean,
 ) {
@@ -119,20 +138,18 @@ private fun rememberMetrics(): WidgetMetrics {
         tall = tall,
         buttonsPerRow = if (compact) 2 else 3,
         buttonRows = if (tall) 2 else 1,
-        // Высоты подобраны так, чтобы содержимое помещалось в свой размер
-        // без обрезки. На двух ячейках в высоту (110dp минус отступы — 90dp)
-        // бюджет плотный: отсчёт + полоса + ряд кнопок и есть всё, что влезает,
-        // поэтому сводка появляется только на высоком виджете.
+        // Heights are chosen so the content fits its size without clipping. On
+        // two cells of height (110dp less padding, so 90dp) the budget is tight:
+        // countdown, progress bar and one row of buttons is all that fits, which
+        // is why the summary line only appears on a tall widget.
         //
-        // Запас высоты под отсчёт — примерно 1.5 от кегля: sp растёт вместе
-        // с системной настройкой размера текста, и без запаса цифры обрежет.
+        // The countdown box allows about 1.5x the type size: sp scales with the
+        // system font setting, and without headroom the digits get cut off.
         chronometerHeight = when {
             compact -> 22.dp
             tall -> 38.dp
             else -> 30.dp
         },
-        // Строка «17310д 1:56:26» длиннее прежней, поэтому на узком
-        // виджете кегль меньше — иначе она не помещается в ширину.
         chronometerSizeSp = when {
             compact -> 13f
             tall -> 24f
@@ -143,7 +160,12 @@ private fun rememberMetrics(): WidgetMetrics {
 }
 
 @Composable
-private fun WidgetBody(state: LifeState, pinned: List<EventType>) {
+private fun WidgetBody(
+    state: LifeState,
+    buttons: List<WidgetButton>,
+    daysSuffix: String,
+    todaySuffix: String,
+) {
     val metrics = rememberMetrics()
     val zone = ZoneId.systemDefault()
     val now = Instant.now()
@@ -151,8 +173,7 @@ private fun WidgetBody(state: LifeState, pinned: List<EventType>) {
     val days = LifeMath.remainingWholeDays(state, now, zone)
     val withinDay = LifeMath.remainingWithinDay(state, now, zone)
     val todayDelta = state.deltaOn(LocalDate.now(zone), zone)
-
-    val buttons = (pinned.ifEmpty { EventType.DEFAULT_PINNED }).take(metrics.buttonBudget)
+    val visible = buttons.take(metrics.buttonBudget)
 
     Column(
         modifier = GlanceModifier
@@ -163,11 +184,11 @@ private fun WidgetBody(state: LifeState, pinned: List<EventType>) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Явная высота: без неё AndroidRemoteViews забирает всю оставшуюся
-        // высоту колонки и выдавливает всё остальное за край виджета.
+        // An explicit height: without it AndroidRemoteViews takes the whole
+        // remaining column height and pushes everything else off the widget.
         Box(modifier = GlanceModifier.fillMaxWidth().height(metrics.chronometerHeight)) {
             CountdownChronometer(
-                format = LifeMath.chronometerFormat(days),
+                format = "$days$daysSuffix %s",
                 withinDay = withinDay,
                 textSizeSp = metrics.chronometerSizeSp,
             )
@@ -183,7 +204,7 @@ private fun WidgetBody(state: LifeState, pinned: List<EventType>) {
         if (metrics.showSummary) {
             Spacer(GlanceModifier.height(4.dp))
             Text(
-                text = buildSummary(state, now, zone, todayDelta),
+                text = buildSummary(state, now, zone, todayDelta, todaySuffix),
                 style = TextStyle(
                     color = ColorProvider(R.color.widget_text_secondary),
                     fontSize = 11.sp,
@@ -195,23 +216,23 @@ private fun WidgetBody(state: LifeState, pinned: List<EventType>) {
 
         Spacer(GlanceModifier.height(if (metrics.compact) 6.dp else 8.dp))
 
-        buttons.chunked(metrics.buttonsPerRow).forEachIndexed { rowIndex, rowButtons ->
+        visible.chunked(metrics.buttonsPerRow).forEachIndexed { rowIndex, rowButtons ->
             if (rowIndex > 0) {
                 Spacer(GlanceModifier.height(6.dp))
             }
             Row(modifier = GlanceModifier.fillMaxWidth()) {
-                rowButtons.forEachIndexed { index, type ->
+                rowButtons.forEachIndexed { index, button ->
                     if (index > 0) {
                         Spacer(GlanceModifier.width(6.dp))
                     }
                     QuickActionButton(
-                        type = type,
+                        button = button,
                         compact = metrics.compact,
                         modifier = GlanceModifier.defaultWeight(),
                     )
                 }
-                // Добиваем неполный ряд, чтобы кнопки не растягивались
-                // на всю ширину, когда их меньше, чем мест.
+                // Pad out an incomplete row so the buttons do not stretch across
+                // the full width when there are fewer of them than slots.
                 repeat(metrics.buttonsPerRow - rowButtons.size) {
                     Spacer(GlanceModifier.defaultWeight())
                 }
@@ -220,12 +241,25 @@ private fun WidgetBody(state: LifeState, pinned: List<EventType>) {
     }
 }
 
+private fun buildSummary(
+    state: LifeState,
+    now: Instant,
+    zone: ZoneId,
+    todayDelta: Int,
+    todaySuffix: String,
+): String {
+    val years = LifeMath.formatRemainingYears(state, now, zone)
+    if (todayDelta == 0) return years
+    val sign = if (todayDelta > 0) "+" else "−"
+    return "$years · $todaySuffix $sign${abs(todayDelta)}"
+}
+
 /**
- * Полоса прожитого: от ребёнка слева к черепу справа.
+ * The lived-fraction bar: a baby on the left, a skull on the right.
  *
- * Числом рядом — доля прожитого с тремя знаками после точки. Она меняется
- * достаточно медленно, чтобы обновляться по общему расписанию виджета,
- * но достаточно заметно, чтобы разница была видна день ото дня.
+ * The number beside it is the fraction lived to three decimals. It moves slowly
+ * enough to refresh on the widget's ordinary schedule, but visibly enough that
+ * the difference shows from day to day.
  */
 @Composable
 private fun LifeProgressRow(fraction: Double, compact: Boolean) {
@@ -235,7 +269,7 @@ private fun LifeProgressRow(fraction: Double, compact: Boolean) {
         modifier = GlanceModifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(text = "\uD83D\uDC76", style = TextStyle(fontSize = labelSize), maxLines = 1)
+        Text(text = "👶", style = TextStyle(fontSize = labelSize), maxLines = 1)
         Spacer(GlanceModifier.width(4.dp))
         LinearProgressIndicator(
             progress = fraction.toFloat(),
@@ -244,7 +278,7 @@ private fun LifeProgressRow(fraction: Double, compact: Boolean) {
             backgroundColor = ColorProvider(R.color.widget_progress_track),
         )
         Spacer(GlanceModifier.width(4.dp))
-        Text(text = "\uD83D\uDC80", style = TextStyle(fontSize = labelSize), maxLines = 1)
+        Text(text = "💀", style = TextStyle(fontSize = labelSize), maxLines = 1)
         Spacer(GlanceModifier.width(3.dp))
         Text(
             text = LifeMath.formatElapsedPercent(fraction),
@@ -257,28 +291,19 @@ private fun LifeProgressRow(fraction: Double, compact: Boolean) {
     }
 }
 
-private fun buildSummary(state: LifeState, now: Instant, zone: ZoneId, todayDelta: Int): String {
-    val years = LifeMath.formatRemainingYears(state, now, zone)
-    return if (todayDelta == 0) {
-        "$years лет"
-    } else {
-        val sign = if (todayDelta > 0) "+" else "−"
-        "$years лет · сегодня $sign${kotlin.math.abs(todayDelta)} мин"
-    }
-}
-
 /**
- * Кнопка закреплённого действия.
+ * A pinned action button.
  *
- * Нажатие уходит в [LogEventAction] — тип передаётся строковым id, поэтому
- * добавление нового типа не требует правок здесь.
+ * The press goes to [LogEventAction] carrying the type's string id, so adding a
+ * new type needs no edits here.
  */
 @Composable
 private fun QuickActionButton(
-    type: EventType,
+    button: WidgetButton,
     compact: Boolean,
     modifier: GlanceModifier = GlanceModifier,
 ) {
+    val type = button.type
     val backgroundColor = if (type.isGain) {
         R.color.widget_button_gain_background
     } else {
@@ -303,8 +328,8 @@ private fun QuickActionButton(
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            // На узком виджете эмодзи съело бы место у подписи.
-            text = if (compact) type.label else "${type.emoji} ${type.label}",
+            // On a narrow widget the emoji would steal room from the label.
+            text = if (compact) button.label else "${type.emoji} ${button.label}",
             style = TextStyle(
                 color = ColorProvider(textColor),
                 fontSize = if (compact) 10.sp else 12.sp,

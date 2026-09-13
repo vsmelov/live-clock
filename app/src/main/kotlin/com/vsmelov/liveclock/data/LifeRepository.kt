@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.vsmelov.liveclock.domain.AppLanguage
 import com.vsmelov.liveclock.domain.EventType
 import com.vsmelov.liveclock.domain.LifeEvent
 import com.vsmelov.liveclock.domain.LifeState
@@ -31,11 +32,12 @@ private val Context.lifeDataStore: DataStore<Preferences> by preferencesDataStor
 )
 
 /**
- * Единственный источник правды. Всё — виджет, Activity и воркеры — ходит сюда.
+ * The single source of truth. The widget, the Activity and the workers all come
+ * here.
  *
- * Состояние лежит одним JSON-блобом под [KEY_STATE], поэтому запись события
- * атомарна: `edit` сериализует конкурентные правки, и одновременное нажатие
- * кнопки на виджете и в Activity не теряет одно из событий.
+ * The state sits in one JSON blob under [KEY_STATE], which makes writing an event
+ * atomic: `edit` serialises concurrent edits, so tapping a button on the widget
+ * and in the Activity at the same time cannot lose one of them.
  */
 class LifeRepository(private val dataStore: DataStore<Preferences>) {
 
@@ -48,18 +50,27 @@ class LifeRepository(private val dataStore: DataStore<Preferences>) {
         .map { preferences -> preferences.toSyncSettings() }
 
     /**
-     * Закреплённые действия в порядке, заданном пользователем. Из них
-     * строятся кнопки виджета. Пока ничего не закреплено — дефолт.
+     * Pinned actions in the order the user chose. The widget buttons are built
+     * from these. Until something is pinned, the default applies.
      */
     val pinnedTypes: Flow<List<EventType>> = dataStore.data
         .catch { error -> emitEmptyOnIoError(error) }
         .map { preferences -> decodePinned(preferences[KEY_PINNED]) }
 
+    /** Interface language. Read by the Activity and by the widget alike. */
+    val language: Flow<AppLanguage> = dataStore.data
+        .catch { error -> emitEmptyOnIoError(error) }
+        .map { preferences -> AppLanguage.fromId(preferences[KEY_LANGUAGE]) }
+
     suspend fun currentState(): LifeState = state.first()
 
     suspend fun currentSyncSettings(): SyncSettings = syncSettings.first()
 
-    /** Атомарно применяет [transform] и возвращает уже сохранённое состояние. */
+    suspend fun currentPinnedTypes(): List<EventType> = pinnedTypes.first()
+
+    suspend fun currentLanguage(): AppLanguage = language.first()
+
+    /** Applies [transform] atomically and returns the state as saved. */
     suspend fun update(transform: (LifeState) -> LifeState): LifeState {
         var updated = LifeState()
         dataStore.edit { preferences ->
@@ -70,12 +81,12 @@ class LifeRepository(private val dataStore: DataStore<Preferences>) {
     }
 
     /**
-     * Запись события. Вызывается и с виджета, и из Activity.
+     * Records an event. Called from the widget and from the Activity.
      *
-     * Цена считается по текущему логу: у типов с нормой первые события
-     * за период могут стоить иначе, чем последующие. Посчитанное значение
-     * замораживается в событии, поэтому лог остаётся честной записью того,
-     * что происходило, а не пересчитывается задним числом.
+     * The price is computed against the current log: for types with an allowance
+     * the first events in a period may cost differently from later ones. The
+     * computed value is frozen into the event, so the log stays an honest record
+     * of what happened rather than being recomputed after the fact.
      */
     suspend fun addEvent(
         type: EventType,
@@ -87,7 +98,7 @@ class LifeRepository(private val dataStore: DataStore<Preferences>) {
         )
     }
 
-    /** Кнопка «отменить последнее» — промахнуться по виджету слишком легко. */
+    /** The "undo last" button — mistapping the widget is far too easy. */
     suspend fun undoLastEvent(): LifeState = update(LifeState::withoutLastEvent)
 
     suspend fun setBirthDate(date: LocalDate): LifeState =
@@ -96,9 +107,10 @@ class LifeRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setBaseExpectancyYears(years: Double): LifeState =
         update { current -> current.copy(baseExpectancyYears = years) }
 
-    suspend fun currentPinnedTypes(): List<EventType> = pinnedTypes.first()
+    /** Replaces the whole state — used when restoring a backup. */
+    suspend fun replaceState(state: LifeState): LifeState = update { state }
 
-    /** Закрепляет или откручивает тип, сохраняя порядок остальных. */
+    /** Pins or unpins a type, keeping the order of the rest. */
     suspend fun togglePinned(type: EventType) {
         dataStore.edit { preferences ->
             val current = decodePinned(preferences[KEY_PINNED])
@@ -107,7 +119,7 @@ class LifeRepository(private val dataStore: DataStore<Preferences>) {
         }
     }
 
-    /** Двигает закреплённый тип на одну позицию — порядок задаёт кнопки виджета. */
+    /** Moves a pinned type by one position — the order decides the widget buttons. */
     suspend fun movePinned(type: EventType, offset: Int) {
         dataStore.edit { preferences ->
             val current = decodePinned(preferences[KEY_PINNED]).toMutableList()
@@ -119,6 +131,10 @@ class LifeRepository(private val dataStore: DataStore<Preferences>) {
                 preferences[KEY_PINNED] = current.joinToString(PINNED_SEPARATOR) { it.id }
             }
         }
+    }
+
+    suspend fun setLanguage(language: AppLanguage) {
+        dataStore.edit { preferences -> preferences[KEY_LANGUAGE] = language.id }
     }
 
     suspend fun updateSyncSettings(transform: (SyncSettings) -> SyncSettings) {
@@ -140,31 +156,31 @@ class LifeRepository(private val dataStore: DataStore<Preferences>) {
         updateSyncSettings { settings -> settings.copy(lastSyncedAt = instant) }
     }
 
+    private fun decodeState(raw: String?): LifeState {
+        if (raw.isNullOrBlank()) return LifeState()
+        return try {
+            LifeClockJson.decodeFromString<LifeStateDto>(raw).toDomain()
+        } catch (error: IllegalArgumentException) {
+            // A corrupt or incompatible blob. Losing the rest of the app over it
+            // helps nobody — fall back to defaults and leave a trace in the log.
+            Log.e(TAG, "Could not read the saved state, falling back to defaults", error)
+            LifeState()
+        }
+    }
+
     /**
-     * Пустая строка — это осознанный выбор «ничего не закреплено», а
-     * отсутствие ключа — «пользователь ещё не выбирал». Поэтому дефолт
-     * подставляется только во втором случае.
+     * An absent key and an empty string mean different things on purpose: the
+     * first is "the user has not chosen yet" and gets the default, the second is
+     * "everything was deliberately unpinned" and does not.
      */
     private fun decodePinned(raw: String?): List<EventType> {
         if (raw == null) return EventType.DEFAULT_PINNED
         return raw.split(PINNED_SEPARATOR).mapNotNull(EventType::fromId)
     }
 
-    private fun decodeState(raw: String?): LifeState {
-        if (raw.isNullOrBlank()) return LifeState()
-        return try {
-            LifeClockJson.decodeFromString<LifeStateDto>(raw).toDomain()
-        } catch (error: IllegalArgumentException) {
-            // Битый или несовместимый блоб. Терять дальнейшую работу приложения
-            // из-за него незачем — откатываемся на дефолт и пишем в лог.
-            Log.e(TAG, "Не удалось прочитать сохранённое состояние, беру дефолтное", error)
-            LifeState()
-        }
-    }
-
     private suspend fun FlowCollector<Preferences>.emitEmptyOnIoError(error: Throwable) {
         if (error is IOException) {
-            Log.e(TAG, "Не удалось прочитать DataStore", error)
+            Log.e(TAG, "Could not read the DataStore", error)
             emit(emptyPreferences())
         } else {
             throw error
@@ -181,13 +197,14 @@ class LifeRepository(private val dataStore: DataStore<Preferences>) {
     companion object {
         private val KEY_STATE = stringPreferencesKey("life_state")
         private val KEY_PINNED = stringPreferencesKey("pinned_types")
+        private val KEY_LANGUAGE = stringPreferencesKey("language")
         private const val PINNED_SEPARATOR = ","
         private val KEY_SYNC_ENABLED = booleanPreferencesKey("sync_enabled")
         private val KEY_SYNC_URL = stringPreferencesKey("sync_url")
         private val KEY_SYNC_TOKEN = stringPreferencesKey("sync_token")
         private val KEY_SYNC_LAST_AT = longPreferencesKey("sync_last_at")
 
-        /** DataStore процессно-одиночный, поэтому виджет и Activity видят одно и то же. */
+        /** The DataStore is a process singleton, so widget and Activity see the same thing. */
         fun from(context: Context): LifeRepository =
             LifeRepository(context.applicationContext.lifeDataStore)
     }

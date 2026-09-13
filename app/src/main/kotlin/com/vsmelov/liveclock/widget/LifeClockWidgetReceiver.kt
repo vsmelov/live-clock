@@ -6,24 +6,24 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import com.vsmelov.liveclock.work.WidgetRefreshWorker
 
 /**
- * Точка входа системы в виджет. Зарегистрирован в манифесте вместе
- * с life_clock_widget_info.xml.
+ * The system's entry point into the widget. Registered in the manifest together
+ * with life_clock_widget_info.xml.
  *
- * Периодическое обновление заводится здесь, а не в Application: будить
- * процесс раз в пятнадцать минут имеет смысл только пока виджет реально
- * висит на экране.
+ * The periodic refresh is scheduled here rather than in Application: waking the
+ * process every fifteen minutes only makes sense while a widget is actually on
+ * a home screen.
  */
 class LifeClockWidgetReceiver : GlanceAppWidgetReceiver() {
 
     override val glanceAppWidget: GlanceAppWidget = LifeClockWidget()
 
-    /** Появился первый виджет. */
+    /** The first widget appeared. */
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
         WidgetRefreshWorker.schedule(context)
     }
 
-    /** Убран последний виджет. */
+    /** The last widget was removed. */
     override fun onDisabled(context: Context) {
         super.onDisabled(context)
         WidgetRefreshWorker.cancel(context)

@@ -1,47 +1,49 @@
 package com.vsmelov.liveclock.domain
 
+import androidx.annotation.StringRes
+import com.vsmelov.liveclock.R
 import java.time.Instant
 import java.time.ZoneId
 import java.time.temporal.WeekFields
 
 /**
- * Норма за период: сколько можно без штрафа и чего стоит перебор.
+ * An allowance per period: how much fits before a penalty, and what going over costs.
  *
- * Нужна потому, что эпидемиология почти везде меряет ЛИШНЮЮ порцию сверх
- * привычного, а не каждую. Мясо два раза в неделю — это и есть привычный
- * фон, из которого посчитан базовый прогноз; штрафовать за него нечестно
- * и вдобавок бессмысленно как сигнал. Штраф должен включаться на переборе.
+ * This exists because the epidemiology almost everywhere measures an EXTRA
+ * serving on top of habit, not every serving. Meat twice a week is the ordinary
+ * background the baseline forecast was computed from; charging for it is both
+ * wrong on the merits and useless as a signal. The penalty belongs on the excess.
  *
- * Та же механика чинит алкоголь: в источнике первая доза за день идёт
- * в плюс, и только следующие в минус.
+ * The same mechanism repairs alcohol: in the source the first drink of the day
+ * goes up and only the following ones go down.
  */
 data class Dosing(
     val period: DosingPeriod,
-    /** Сколько событий укладывается в норму за период. */
+    /** How many events fit inside the allowance per period. */
     val normal: Int,
-    /** Что стоит событие в пределах нормы. */
+    /** What an event costs while still inside the allowance. */
     val withinNormalMinutes: Int,
-    /** Что стоит каждое событие сверх нормы. */
+    /** What each event beyond the allowance costs. */
     val beyondNormalMinutes: Int,
 ) {
     init {
-        require(normal >= 0) { "норма не может быть отрицательной" }
+        require(normal >= 0) { "an allowance cannot be negative" }
     }
 }
 
-enum class DosingPeriod(val label: String) {
-    DAY("за день"),
-    WEEK("за неделю"),
+enum class DosingPeriod(@StringRes val labelRes: Int) {
+    DAY(R.string.period_day),
+    WEEK(R.string.period_week),
     ;
 
-    /** Попадают ли два момента в один и тот же период в зоне [zone]. */
+    /** Whether two moments fall inside the same period in [zone]. */
     fun isSamePeriod(first: Instant, second: Instant, zone: ZoneId): Boolean {
         val a = first.atZone(zone).toLocalDate()
         val b = second.atZone(zone).toLocalDate()
         return when (this) {
             DAY -> a == b
-            // Календарная неделя по ISO, с понедельника: «за неделю» человек
-            // понимает именно так, а не как скользящие семь суток.
+            // ISO calendar week, starting Monday: "per week" is what a person
+            // means by that, not a rolling seven days.
             WEEK -> {
                 val week = WeekFields.ISO.weekOfWeekBasedYear()
                 val year = WeekFields.ISO.weekBasedYear()

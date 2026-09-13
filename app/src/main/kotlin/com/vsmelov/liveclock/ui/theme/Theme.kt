@@ -8,8 +8,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
 /**
- * Динамическая палитра Material You. minSdk 31, поэтому она есть всегда
- * и запасной статической схемы не требуется.
+ * The Material You dynamic palette. minSdk is 31, so it is always available and
+ * no static fallback scheme is needed.
  */
 @Composable
 fun LiveClockTheme(

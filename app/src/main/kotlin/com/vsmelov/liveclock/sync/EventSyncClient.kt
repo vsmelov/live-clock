@@ -4,20 +4,20 @@ import com.vsmelov.liveclock.domain.LifeEvent
 import java.io.IOException
 
 /**
- * Выгрузка лога наружу.
+ * Uploads the log somewhere else.
  *
- * Контракт намеренно узкий: клиент только отправляет события и ничего не
- * возвращает. Источник правды — локальный DataStore, сервер не может
- * переписать локальное состояние, поэтому приложение целиком работает офлайн.
+ * The contract is deliberately narrow: a client only sends events and returns
+ * nothing. The local DataStore is the source of truth and a server cannot
+ * overwrite local state, which is what lets the app work entirely offline.
  *
- * Реализация обязана бросить [SyncException] на неуспехе, чтобы воркер
- * отличил «повторить позже» от «отправлено».
+ * An implementation must throw [SyncException] on failure so the worker can tell
+ * "retry later" from "delivered".
  */
 interface EventSyncClient {
 
-    /** Отправляет [events]. Пустой список — не повод ходить в сеть. */
+    /** Sends [events]. An empty list is no reason to touch the network. */
     suspend fun push(events: List<LifeEvent>)
 }
 
-/** Синк не удался. Наследник [IOException] — это ровно сетевая семантика. */
+/** Sync failed. Extending [IOException] is exactly the right semantics here. */
 class SyncException(message: String, cause: Throwable? = null) : IOException(message, cause)

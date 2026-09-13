@@ -7,10 +7,14 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.vsmelov.liveclock.data.Backup
 import com.vsmelov.liveclock.data.LifeRepository
 import com.vsmelov.liveclock.data.SyncSettings
+import com.vsmelov.liveclock.domain.AppLanguage
 import com.vsmelov.liveclock.domain.EventType
 import com.vsmelov.liveclock.domain.LifeState
+import com.vsmelov.liveclock.domain.Streak
+import com.vsmelov.liveclock.domain.WeekSummary
 import com.vsmelov.liveclock.widget.LifeClockWidget
 import com.vsmelov.liveclock.work.SyncWorker
 import kotlinx.coroutines.delay
@@ -29,11 +33,18 @@ data class MainUiState(
     val life: LifeState = LifeState(),
     val sync: SyncSettings = SyncSettings(),
     val pinned: List<EventType> = EventType.DEFAULT_PINNED,
+    val language: AppLanguage = AppLanguage.SYSTEM,
     val now: Instant = Instant.now(),
     val zone: ZoneId = ZoneId.systemDefault(),
 ) {
-    /** Сколько раз каждый тип попадал в лог — подсказка, что стоит закрепить. */
+    /** How often each type has been logged — a hint about what is worth pinning. */
     val usageCounts: Map<EventType, Int> get() = life.usageCounts()
+
+    val today: LocalDate get() = LocalDate.now(zone)
+
+    val week: WeekSummary get() = life.weekSummary(now, zone)
+
+    val streaks: List<Streak> get() = life.streaks(today, zone)
 }
 
 class MainViewModel(
@@ -42,9 +53,8 @@ class MainViewModel(
 ) : ViewModel() {
 
     /**
-     * В приложении секунды можно показывать честно — процесс всё равно
-     * на переднем плане. Ограничение «раз в полчаса» относится к виджету,
-     * а не сюда.
+     * Inside the app the seconds can be shown honestly — the process is in the
+     * foreground. The "twice an hour" limit applies to the widget, not here.
      */
     private val ticker: Flow<Instant> = flow {
         while (true) {
@@ -58,9 +68,10 @@ class MainViewModel(
             repository.state,
             repository.syncSettings,
             repository.pinnedTypes,
+            repository.language,
             ticker,
-        ) { life, sync, pinned, now ->
-            MainUiState(life = life, sync = sync, pinned = pinned, now = now)
+        ) { life, sync, pinned, language, now ->
+            MainUiState(life = life, sync = sync, pinned = pinned, language = language, now = now)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
@@ -74,10 +85,10 @@ class MainViewModel(
 
     fun undoLastEvent() = mutate { repository.undoLastEvent() }
 
-    /** Закрепить или открепить действие. Виджет перерисуется сразу. */
+    /** Pins or unpins an action. The widget redraws immediately. */
     fun togglePinned(type: EventType) = mutate { repository.togglePinned(type) }
 
-    /** Сдвинуть закреплённое действие — порядок задаёт кнопки виджета. */
+    /** Moves a pinned action — the order decides the widget buttons. */
     fun movePinned(type: EventType, offset: Int) = mutate {
         repository.movePinned(type, offset)
     }
@@ -87,6 +98,8 @@ class MainViewModel(
     fun setBaseExpectancyYears(years: Double) = mutate {
         repository.setBaseExpectancyYears(years)
     }
+
+    fun setLanguage(language: AppLanguage) = mutate { repository.setLanguage(language) }
 
     fun setSyncEnabled(enabled: Boolean) = mutate {
         repository.updateSyncSettings { it.copy(enabled = enabled) }
@@ -100,9 +113,25 @@ class MainViewModel(
         repository.updateSyncSettings { it.copy(bearerToken = token) }
     }
 
+    /** The backup payload. Read through the repository so it is always current. */
+    suspend fun exportPayload(): String = Backup.encode(repository.currentState())
+
     /**
-     * Любая правка состояния должна доехать до виджета: он читает тот же
-     * DataStore, но перерисовывается только когда его об этом попросят.
+     * Restores from a backup, returning how many events came back, or null if the
+     * file could not be read. Replaces the state wholesale — a restore is a
+     * restore, not a merge, and merging two logs by timestamp would silently
+     * double every event the user re-imported.
+     */
+    suspend fun restoreFrom(raw: String): Int? {
+        val restored = Backup.decode(raw) ?: return null
+        repository.replaceState(restored)
+        LifeClockWidget().updateAll(appContext)
+        return restored.events.size
+    }
+
+    /**
+     * Any change to the state has to reach the widget: it reads the same
+     * DataStore but only redraws when asked.
      */
     private fun mutate(block: suspend () -> Unit) {
         viewModelScope.launch {
