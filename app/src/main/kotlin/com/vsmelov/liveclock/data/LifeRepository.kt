@@ -46,6 +46,14 @@ class LifeRepository(private val dataStore: DataStore<Preferences>) {
         .catch { error -> emitEmptyOnIoError(error) }
         .map { preferences -> preferences.toSyncSettings() }
 
+    /**
+     * Закреплённые действия в порядке, заданном пользователем. Из них
+     * строятся кнопки виджета. Пока ничего не закреплено — дефолт.
+     */
+    val pinnedTypes: Flow<List<EventType>> = dataStore.data
+        .catch { error -> emitEmptyOnIoError(error) }
+        .map { preferences -> decodePinned(preferences[KEY_PINNED]) }
+
     suspend fun currentState(): LifeState = state.first()
 
     suspend fun currentSyncSettings(): SyncSettings = syncSettings.first()
@@ -73,6 +81,31 @@ class LifeRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setBaseExpectancyYears(years: Double): LifeState =
         update { current -> current.copy(baseExpectancyYears = years) }
 
+    suspend fun currentPinnedTypes(): List<EventType> = pinnedTypes.first()
+
+    /** Закрепляет или откручивает тип, сохраняя порядок остальных. */
+    suspend fun togglePinned(type: EventType) {
+        dataStore.edit { preferences ->
+            val current = decodePinned(preferences[KEY_PINNED])
+            val updated = if (type in current) current - type else current + type
+            preferences[KEY_PINNED] = updated.joinToString(PINNED_SEPARATOR) { it.id }
+        }
+    }
+
+    /** Двигает закреплённый тип на одну позицию — порядок задаёт кнопки виджета. */
+    suspend fun movePinned(type: EventType, offset: Int) {
+        dataStore.edit { preferences ->
+            val current = decodePinned(preferences[KEY_PINNED]).toMutableList()
+            val from = current.indexOf(type)
+            val to = from + offset
+            if (from >= 0 && to in current.indices) {
+                current.removeAt(from)
+                current.add(to, type)
+                preferences[KEY_PINNED] = current.joinToString(PINNED_SEPARATOR) { it.id }
+            }
+        }
+    }
+
     suspend fun updateSyncSettings(transform: (SyncSettings) -> SyncSettings) {
         dataStore.edit { preferences ->
             val updated = transform(preferences.toSyncSettings())
@@ -90,6 +123,16 @@ class LifeRepository(private val dataStore: DataStore<Preferences>) {
 
     suspend fun markSyncedUpTo(instant: Instant) {
         updateSyncSettings { settings -> settings.copy(lastSyncedAt = instant) }
+    }
+
+    /**
+     * Пустая строка — это осознанный выбор «ничего не закреплено», а
+     * отсутствие ключа — «пользователь ещё не выбирал». Поэтому дефолт
+     * подставляется только во втором случае.
+     */
+    private fun decodePinned(raw: String?): List<EventType> {
+        if (raw == null) return EventType.DEFAULT_PINNED
+        return raw.split(PINNED_SEPARATOR).mapNotNull(EventType::fromId)
     }
 
     private fun decodeState(raw: String?): LifeState {
@@ -122,6 +165,8 @@ class LifeRepository(private val dataStore: DataStore<Preferences>) {
 
     companion object {
         private val KEY_STATE = stringPreferencesKey("life_state")
+        private val KEY_PINNED = stringPreferencesKey("pinned_types")
+        private const val PINNED_SEPARATOR = ","
         private val KEY_SYNC_ENABLED = booleanPreferencesKey("sync_enabled")
         private val KEY_SYNC_URL = stringPreferencesKey("sync_url")
         private val KEY_SYNC_TOKEN = stringPreferencesKey("sync_token")
