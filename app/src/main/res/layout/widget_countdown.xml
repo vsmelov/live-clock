@@ -5,13 +5,18 @@
   Это единственный способ показывать секунды на виджете: Chronometer тикает
   средствами самого лаунчера, без пробуждения нашего процесса. Обновлять
   виджет раз в секунду система всё равно не даст.
+
+  width=match_parent и gravity=center обязательны: без них текст прилипает
+  к левому краю, потому что Glance отдаёт этому элементу всю ширину.
 -->
 <Chronometer xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/countdown"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:ellipsize="none"
     android:gravity="center"
     android:includeFontPadding="false"
     android:maxLines="1"
-    android:textColor="@color/widget_text_secondary"
-    android:textSize="14sp" />
+    android:textColor="@color/widget_text_primary"
+    android:textSize="24sp"
+    android:textStyle="bold" />
