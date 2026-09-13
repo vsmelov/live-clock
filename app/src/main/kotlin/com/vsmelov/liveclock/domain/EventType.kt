@@ -67,14 +67,14 @@ enum class EventType(
     VEGETABLES(
         id = "vegetables",
         deltaMinutes = Coefficients.VEGETABLES,
-        label = "Овощи",
+        label = "Овощи, порция",
         emoji = "🥦",
         keywords = "овощи салат фрукты зелень vegetables",
     ),
     RED_MEAT(
         id = "red_meat",
         deltaMinutes = Coefficients.RED_MEAT,
-        label = "Красное мясо",
+        label = "Красное мясо, 85 г",
         emoji = "🥩",
         keywords = "мясо стейк бекон колбаса meat",
     ),
