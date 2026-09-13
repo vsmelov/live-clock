@@ -7,7 +7,6 @@
 
     <string name="remaining_title">Осталось</string>
     <string name="expected_moment">Ожидаемый момент: %1$s</string>
-    <string name="remaining_breakdown">%1$s дней · %2$s ч %3$s мин</string>
 
     <string name="actions_title">Действия</string>
     <string name="actions_search">Поиск действия</string>

@@ -11,4 +11,8 @@
     <color name="widget_button_cost_text">#8C1D18</color>
     <color name="widget_button_gain_background">#DDF0D5</color>
     <color name="widget_button_gain_text">#1F5026</color>
+
+    <!-- Полоса «прожито»: от эмодзи ребёнка к черепу. -->
+    <color name="widget_progress">#6750A4</color>
+    <color name="widget_progress_track">#E7E0EC</color>
 </resources>

@@ -20,10 +20,12 @@ import java.time.Duration
  *
  * Тикает только остаток внутри суток: Chronometer форматирует время как
  * «Ч:ММ:СС» и не умеет сутки, поэтому 17310 дней он показал бы как
- * 415440 часов. Сами сутки рисуются отдельной надписью рядом.
+ * 415440 часов. Сутки подставляются строкой в [format] и обновляются
+ * по общему расписанию виджета — получается «17310д 1:56:26» одной строкой.
  */
 @Composable
 fun CountdownChronometer(
+    format: String,
     withinDay: Duration,
     textSizeSp: Float,
     modifier: GlanceModifier = GlanceModifier,
@@ -31,7 +33,7 @@ fun CountdownChronometer(
     val context = LocalContext.current
     val remoteViews = RemoteViews(context.packageName, R.layout.widget_countdown).apply {
         setChronometerCountDown(R.id.countdown, true)
-        setChronometer(R.id.countdown, elapsedRealtimeBaseIn(withinDay), null, true)
+        setChronometer(R.id.countdown, elapsedRealtimeBaseIn(withinDay), format, true)
         setTextViewTextSize(R.id.countdown, TypedValue.COMPLEX_UNIT_SP, textSizeSp)
     }
     // Явный fillMaxSize — иначе AndroidRemoteViews раздувается на всю

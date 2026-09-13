@@ -31,6 +31,7 @@ object LifeMath {
     const val SECONDS_PER_YEAR: Double = DAYS_PER_YEAR * 24.0 * 60.0 * 60.0
 
     private const val SECONDS_PER_MINUTE = 60L
+    private const val MINUTES_PER_HOUR = 60L
     private const val NANOS_PER_SECOND = 1_000_000_000.0
 
     /**
@@ -78,6 +79,54 @@ object LifeMath {
     /** Готовая строка для крупной надписи виджета. */
     fun formatRemainingYears(state: LifeState, now: Instant, zone: ZoneId): String =
         formatYears(remainingYears(state, now, zone))
+
+    /**
+     * Доля прожитого: 0.0 в день рождения, 1.0 в ожидаемый момент.
+     *
+     * Считается от полуночи дня рождения до ожидаемого момента, то есть
+     * с учётом всего лога: каждая сигарета двигает не только остаток,
+     * но и знаменатель.
+     */
+    fun elapsedFraction(state: LifeState, now: Instant, zone: ZoneId): Double {
+        val birth = state.birthDate.atStartOfDay(zone).toInstant()
+        val death = expectedDeathInstant(state, zone)
+        val total = Duration.between(birth, death).seconds
+        if (total <= 0) return 1.0
+        val lived = Duration.between(birth, now).seconds
+        return (lived.toDouble() / total).coerceIn(0.0, 1.0)
+    }
+
+    /** Доля прожитого в процентах с тремя знаками: «63.874%». */
+    fun formatElapsedPercent(fraction: Double): String =
+        "%.3f%%".format(Locale.US, fraction * 100.0)
+
+    /**
+     * Остаток одной строкой, как на виджете: «17310д 1:56:26».
+     *
+     * Сутки подставляются в формат Chronometer'а, а «Ч:ММ:СС» он дорисовывает
+     * сам и сам же тикает. Символ процента в подставляемой части экранируется:
+     * формат уходит в String.format внутри Chronometer.
+     */
+    fun chronometerFormat(days: Long): String = "${days}д %s"
+
+    /**
+     * Остаток одной строкой с секундами: «17310д 23:21:45».
+     *
+     * Для Activity, где секунды можно честно перерисовывать каждую секунду.
+     * На виджете тот же вид собирается из [chronometerFormat] и Chronometer'а,
+     * потому что там раз в секунду нас никто будить не станет.
+     */
+    fun formatCountdown(state: LifeState, now: Instant, zone: ZoneId): String {
+        val days = remainingWholeDays(state, now, zone)
+        val within = remainingWithinDay(state, now, zone)
+        return "%dд %d:%02d:%02d".format(
+            Locale.US,
+            days,
+            within.toHours(),
+            within.toMinutes() % MINUTES_PER_HOUR,
+            within.seconds % SECONDS_PER_MINUTE,
+        )
+    }
 
     /**
      * Целых суток в остатке.

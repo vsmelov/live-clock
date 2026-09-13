@@ -13,6 +13,7 @@ import androidx.glance.LocalSize
 import androidx.glance.action.actionParametersOf
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.LinearProgressIndicator
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.cornerRadius
@@ -103,6 +104,7 @@ private data class WidgetMetrics(
     val buttonRows: Int,
     val chronometerHeight: androidx.compose.ui.unit.Dp,
     val chronometerSizeSp: Float,
+    val showSummary: Boolean,
 ) {
     val buttonBudget: Int get() = buttonsPerRow * buttonRows
 }
@@ -117,10 +119,26 @@ private fun rememberMetrics(): WidgetMetrics {
         tall = tall,
         buttonsPerRow = if (compact) 2 else 3,
         buttonRows = if (tall) 2 else 1,
-        // Запас примерно в 1.6 от кегля: sp растёт вместе с системной
-        // настройкой размера текста, и без запаса цифры обрежет.
-        chronometerHeight = if (compact) 26.dp else 38.dp,
-        chronometerSizeSp = if (compact) 16f else 24f,
+        // Высоты подобраны так, чтобы содержимое помещалось в свой размер
+        // без обрезки. На двух ячейках в высоту (110dp минус отступы — 90dp)
+        // бюджет плотный: отсчёт + полоса + ряд кнопок и есть всё, что влезает,
+        // поэтому сводка появляется только на высоком виджете.
+        //
+        // Запас высоты под отсчёт — примерно 1.5 от кегля: sp растёт вместе
+        // с системной настройкой размера текста, и без запаса цифры обрежет.
+        chronometerHeight = when {
+            compact -> 22.dp
+            tall -> 38.dp
+            else -> 30.dp
+        },
+        // Строка «17310д 1:56:26» длиннее прежней, поэтому на узком
+        // виджете кегль меньше — иначе она не помещается в ширину.
+        chronometerSizeSp = when {
+            compact -> 13f
+            tall -> 24f
+            else -> 20f
+        },
+        showSummary = tall,
     )
 }
 
@@ -145,27 +163,25 @@ private fun WidgetBody(state: LifeState, pinned: List<EventType>) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = "$days дней",
-            style = TextStyle(
-                color = ColorProvider(R.color.widget_text_secondary),
-                fontSize = if (metrics.compact) 12.sp else 15.sp,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Center,
-            ),
-            maxLines = 1,
-        )
-
         // Явная высота: без неё AndroidRemoteViews забирает всю оставшуюся
-        // высоту колонки и выдавливает кнопки за край виджета.
+        // высоту колонки и выдавливает всё остальное за край виджета.
         Box(modifier = GlanceModifier.fillMaxWidth().height(metrics.chronometerHeight)) {
             CountdownChronometer(
+                format = LifeMath.chronometerFormat(days),
                 withinDay = withinDay,
                 textSizeSp = metrics.chronometerSizeSp,
             )
         }
 
-        if (!metrics.compact) {
+        Spacer(GlanceModifier.height(4.dp))
+
+        LifeProgressRow(
+            fraction = LifeMath.elapsedFraction(state, now, zone),
+            compact = metrics.compact,
+        )
+
+        if (metrics.showSummary) {
+            Spacer(GlanceModifier.height(4.dp))
             Text(
                 text = buildSummary(state, now, zone, todayDelta),
                 style = TextStyle(
@@ -177,7 +193,7 @@ private fun WidgetBody(state: LifeState, pinned: List<EventType>) {
             )
         }
 
-        Spacer(GlanceModifier.height(if (metrics.compact) 6.dp else 10.dp))
+        Spacer(GlanceModifier.height(if (metrics.compact) 6.dp else 8.dp))
 
         buttons.chunked(metrics.buttonsPerRow).forEachIndexed { rowIndex, rowButtons ->
             if (rowIndex > 0) {
@@ -201,6 +217,43 @@ private fun WidgetBody(state: LifeState, pinned: List<EventType>) {
                 }
             }
         }
+    }
+}
+
+/**
+ * Полоса прожитого: от ребёнка слева к черепу справа.
+ *
+ * Числом рядом — доля прожитого с тремя знаками после точки. Она меняется
+ * достаточно медленно, чтобы обновляться по общему расписанию виджета,
+ * но достаточно заметно, чтобы разница была видна день ото дня.
+ */
+@Composable
+private fun LifeProgressRow(fraction: Double, compact: Boolean) {
+    val labelSize = if (compact) 9.sp else 11.sp
+
+    Row(
+        modifier = GlanceModifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(text = "\uD83D\uDC76", style = TextStyle(fontSize = labelSize), maxLines = 1)
+        Spacer(GlanceModifier.width(4.dp))
+        LinearProgressIndicator(
+            progress = fraction.toFloat(),
+            modifier = GlanceModifier.defaultWeight().height(6.dp),
+            color = ColorProvider(R.color.widget_progress),
+            backgroundColor = ColorProvider(R.color.widget_progress_track),
+        )
+        Spacer(GlanceModifier.width(4.dp))
+        Text(text = "\uD83D\uDC80", style = TextStyle(fontSize = labelSize), maxLines = 1)
+        Spacer(GlanceModifier.width(3.dp))
+        Text(
+            text = LifeMath.formatElapsedPercent(fraction),
+            style = TextStyle(
+                color = ColorProvider(R.color.widget_text_secondary),
+                fontSize = labelSize,
+            ),
+            maxLines = 1,
+        )
     }
 }
 
@@ -246,7 +299,7 @@ private fun QuickActionButton(
                     actionParametersOf(LogEventAction.EventTypeKey to type.id),
                 ),
             )
-            .padding(horizontal = 4.dp, vertical = if (compact) 7.dp else 9.dp),
+            .padding(horizontal = 4.dp, vertical = if (compact) 6.dp else 8.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -16,6 +17,7 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -42,7 +44,6 @@ import com.vsmelov.liveclock.domain.EventType
 import com.vsmelov.liveclock.domain.LifeEvent
 import com.vsmelov.liveclock.domain.LifeMath
 import androidx.compose.ui.res.stringResource
-import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -93,8 +94,8 @@ fun MainScreen(viewModel: MainViewModel, modifier: Modifier = Modifier) {
 
 @Composable
 private fun RemainingHeader(uiState: MainUiState) {
-    val remaining = LifeMath.remaining(uiState.life, uiState.now, uiState.zone)
     val expected = LifeMath.expectedDeathInstant(uiState.life, uiState.zone)
+    val fraction = LifeMath.elapsedFraction(uiState.life, uiState.now, uiState.zone)
 
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -108,20 +109,25 @@ private fun RemainingHeader(uiState: MainUiState) {
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = "${LifeMath.formatYears(
-                    LifeMath.remainingYears(uiState.life, uiState.now, uiState.zone),
-                )} ${stringResource(R.string.years_suffix)}",
-                style = MaterialTheme.typography.displaySmall,
+                // Тот же вид, что на виджете. Здесь секунды перерисовываются
+                // честно каждую секунду — процесс на переднем плане.
+                text = LifeMath.formatCountdown(uiState.life, uiState.now, uiState.zone),
+                style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
             )
-            Spacer(Modifier.height(6.dp))
+
+            Spacer(Modifier.height(12.dp))
+            LifeProgressRow(fraction = fraction)
+            Spacer(Modifier.height(12.dp))
+
             Text(
-                text = remaining.asBreakdown(),
+                text = "${LifeMath.formatYears(
+                    LifeMath.remainingYears(uiState.life, uiState.now, uiState.zone),
+                )} ${stringResource(R.string.years_suffix)}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.height(2.dp))
             Text(
                 text = stringResource(
                     R.string.expected_moment,
@@ -134,13 +140,28 @@ private fun RemainingHeader(uiState: MainUiState) {
     }
 }
 
+/** Полоса прожитого: от ребёнка слева к черепу справа. */
 @Composable
-private fun Duration.asBreakdown(): String {
-    val total = if (isNegative) negated() else this
-    val days = total.toDays()
-    val hours = total.toHours() % 24
-    val minutes = total.toMinutes() % 60
-    return stringResource(R.string.remaining_breakdown, days.toString(), hours.toString(), minutes.toString())
+private fun LifeProgressRow(fraction: Double) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(text = "\uD83D\uDC76", style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.width(8.dp))
+        LinearProgressIndicator(
+            progress = { fraction.toFloat() },
+            modifier = Modifier.weight(1f),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(text = "\uD83D\uDC80", style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.width(6.dp))
+        Text(
+            text = LifeMath.formatElapsedPercent(fraction),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }
 
 /**
